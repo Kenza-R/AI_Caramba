@@ -2,6 +2,3 @@
 
 # Local-only notes (not for Canvas)
 internal/
-
-# Canvas submission zip (generate locally; do not commit)
-*.zip
