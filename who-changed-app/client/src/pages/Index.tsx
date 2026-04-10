@@ -15,7 +15,7 @@ const Index = () => {
     const load = async () => {
       try {
         const rows = await fetchFeaturedFigures();
-        if (!cancelled) setFigures(rows.slice(0, 4));
+        if (!cancelled) setFigures(rows);
       } catch {
         if (!cancelled) setFigures([]);
       }
@@ -57,7 +57,7 @@ const Index = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.5, duration: 0.8 }}
-          className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 max-w-4xl"
+          className="mt-16 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-10 max-w-6xl w-full px-2"
         >
           {figures.map((fig, i) => (
             <FigureCard key={fig.id} figure={fig} index={i} />

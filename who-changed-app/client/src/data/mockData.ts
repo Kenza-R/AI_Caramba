@@ -1,3 +1,5 @@
+import { apiUrl, explainApiNetworkError } from "@/lib/apiBase";
+
 export interface Figure {
   id: string;
   name: string;
@@ -16,6 +18,10 @@ export interface Figure {
   topics: TopicStance[];
   shiftEvents: ShiftEvent[];
   synthesis: string;
+  /** False when shown on home from featured seed but no cached analysis yet */
+  analysisReady?: boolean;
+  demoMode?: boolean;
+  corpusTweetCount?: number | null;
 }
 
 export interface TopicStance {
@@ -145,38 +151,51 @@ function mapDashboardToFigure(d: any): Figure {
     topics,
     shiftEvents,
     synthesis: String(d?.narrative?.full_summary || "No synthesis available."),
+    analysisReady: true,
+    demoMode: Boolean(d?.meta?.demo_mode),
+    corpusTweetCount: d?.meta?.corpus_tweet_count ?? null,
   };
 
   figureCache.set(handle.toLowerCase(), fig);
   return fig;
 }
 
+/** Home dashboard: every saved analysis (newest first) plus featured handles still pending. */
 export async function fetchFeaturedFigures(): Promise<Figure[]> {
-  const r = await fetch("/api/featured");
-  if (!r.ok) throw new Error("Failed to load featured");
+  let r: Response;
+  try {
+    r = await fetch(apiUrl("/api/figures"));
+  } catch (e) {
+    throw new Error(explainApiNetworkError(e));
+  }
+  if (!r.ok) throw new Error("Failed to load dashboard figures");
   const data = await r.json();
   const rows = Array.isArray(data?.figures) ? data.figures : [];
   return rows.map((f: any) => {
     const handle = String(f.handle || "unknown").toLowerCase();
     const ring = ringToIntensity(f.ring);
+    const ready = Boolean(f.ready);
     const fig: Figure = {
       id: handle,
       name: String(f.name || `@${handle}`),
       handle: `@${String(f.username || handle)}`,
       bio: String(f.blurb || ""),
       image: String(f.profile_image_url || ""),
-      driftScore: ring === "significant" ? 7.2 : ring === "moderate" ? 4.1 : 1.3,
-      shiftIntensity: ring,
-      currentPosition: "Loading",
+      driftScore: ready ? (ring === "significant" ? 7.2 : ring === "moderate" ? 4.1 : 1.3) : 0,
+      shiftIntensity: ready ? ring : "stable",
+      currentPosition: ready ? "See dossier" : "Queued",
       driftDirection: "Stable",
-      biggestShift: "Pending",
-      biggestShiftScore: ring === "significant" ? 6.5 : ring === "moderate" ? 3.8 : 1.2,
+      biggestShift: ready ? "Open dossier" : "Not analyzed yet",
+      biggestShiftScore: ready ? (ring === "significant" ? 6.5 : ring === "moderate" ? 3.8 : 1.2) : 0,
       positionScore2022: 50,
       positionScoreNow: 50,
-      confidencePercent: 0,
+      confidencePercent: ready ? 55 : 0,
       topics: [],
       shiftEvents: [],
       synthesis: String(f.blurb || ""),
+      analysisReady: ready,
+      demoMode: Boolean(f.demo_mode),
+      corpusTweetCount: f.corpus_tweet_count ?? null,
     };
     figureCache.set(handle, fig);
     return fig;
@@ -185,7 +204,12 @@ export async function fetchFeaturedFigures(): Promise<Figure[]> {
 
 export async function fetchFigureById(id: string): Promise<Figure | null> {
   const handle = id.replace(/^@/, "").toLowerCase();
-  const r = await fetch(`/api/figure/${encodeURIComponent(handle)}`);
+  let r: Response;
+  try {
+    r = await fetch(apiUrl(`/api/figure/${encodeURIComponent(handle)}`));
+  } catch (e) {
+    throw new Error(explainApiNetworkError(e));
+  }
   if (r.status === 404) return null;
   if (!r.ok) throw new Error("Failed to load figure dossier");
   const data = await r.json();
@@ -200,11 +224,16 @@ export async function analyzeHandle(
   handle: string,
   onEvent: (ev: any) => void,
 ): Promise<void> {
-  const res = await fetch("/api/analyze", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ handle: handle.replace(/^@/, "").trim() }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(apiUrl("/api/analyze"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ handle: handle.replace(/^@/, "").trim() }),
+    });
+  } catch (e) {
+    throw new Error(explainApiNetworkError(e));
+  }
   if (!res.ok || !res.body) {
     const t = await res.text();
     throw new Error(t || "Analyze request failed");
@@ -213,22 +242,26 @@ export async function analyzeHandle(
   const reader = res.body.getReader();
   const dec = new TextDecoder();
   let buf = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buf += dec.decode(value, { stream: true });
-    const parts = buf.split("\n\n");
-    buf = parts.pop() || "";
-    for (const block of parts) {
-      const line = block.split("\n").find((l) => l.startsWith("data: "));
-      if (!line) continue;
-      try {
-        const ev = JSON.parse(line.slice(6));
-        if (ev.dashboard) mapDashboardToFigure(ev.dashboard);
-        onEvent(ev);
-      } catch {
-        // ignore parse failures
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const parts = buf.split("\n\n");
+      buf = parts.pop() || "";
+      for (const block of parts) {
+        const line = block.split("\n").find((l) => l.startsWith("data: "));
+        if (!line) continue;
+        try {
+          const ev = JSON.parse(line.slice(6));
+          if (ev.dashboard) mapDashboardToFigure(ev.dashboard);
+          onEvent(ev);
+        } catch {
+          // ignore parse failures
+        }
       }
     }
+  } catch (e) {
+    throw new Error(explainApiNetworkError(e));
   }
 }

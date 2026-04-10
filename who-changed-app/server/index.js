@@ -1,11 +1,17 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 import express from "express";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: join(__dirname, ".env"), override: true });
 import cors from "cors";
 import { runPipeline } from "./pipeline.js";
 import {
   getAnalysis,
   getFeaturedHandles,
   setFeaturedHandles,
+  listAllAnalyses,
 } from "./db/database.js";
 import { fallbackAvatarUrl, upgradeTwitterImageUrl } from "./lib/avatars.js";
 import { lookupTwitterProfileByUsername } from "./lib/twitterUser.js";
@@ -31,15 +37,85 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/api/featured", async (req, res) => {
-  let handles = getFeaturedHandles();
-  if (!handles.length) {
+function figureCardFromAnalysisRow(row) {
+  const a = row.data;
+  const h = String(row.handle || a.handle || "").toLowerCase();
+  const avatarFallback = fallbackAvatarUrl(h);
+  const raw = a.profile?.profile_image_url || "";
+  const pic = raw ? upgradeTwitterImageUrl(raw) || raw : avatarFallback;
+  const blurb =
+    (a.narrative?.most_significant_shift || a.narrative?.full_summary || "").slice(0, 220) ||
+    "Analysis complete — open dossier for full breakdown.";
+  return {
+    handle: h,
+    ready: true,
+    name: a.profile?.name || FEATURED_LABELS[h] || `@${h}`,
+    username: a.profile?.username || h,
+    profile_image_url: pic || avatarFallback,
+    ring: a.meta?.shift_stability_ring || "stable",
+    blurb,
+    dateRange: a.dateRange,
+    demo_mode: Boolean(a.meta?.demo_mode),
+    corpus_tweet_count: a.meta?.corpus_tweet_count ?? null,
+    updated_at: row.updated_at,
+  };
+}
+
+/** All saved analyses (newest first) plus featured handles still pending. */
+app.get("/api/figures", async (req, res) => {
+  let featured = getFeaturedHandles();
+  if (!featured.length) {
     setFeaturedHandles(FEATURED_DEFAULT);
-    handles = FEATURED_DEFAULT;
+    featured = FEATURED_DEFAULT;
+  }
+
+  const seen = new Set();
+  const ready = [];
+
+  for (const row of listAllAnalyses()) {
+    const h = String(row.handle).toLowerCase();
+    if (seen.has(h)) continue;
+    seen.add(h);
+    ready.push(figureCardFromAnalysisRow(row));
+  }
+
+  const pending = await Promise.all(
+    featured
+      .filter((h) => !seen.has(h.toLowerCase()))
+      .map(async (h) => {
+        const avatarFallback = fallbackAvatarUrl(h);
+        const tw = await lookupTwitterProfileByUsername(h);
+        const pic = tw?.profile_image_url || avatarFallback;
+        return {
+          handle: h,
+          ready: false,
+          name: tw?.name || FEATURED_LABELS[h] || `@${h}`,
+          username: tw?.username || h,
+          profile_image_url: pic || avatarFallback,
+          ring: "stable",
+          blurb: tw?.description
+            ? String(tw.description).slice(0, 220)
+            : "Analysis not ready yet — search below or wait for background jobs.",
+          demo_mode: false,
+          corpus_tweet_count: null,
+          updated_at: null,
+        };
+      }),
+  );
+
+  res.json({ figures: [...ready, ...pending] });
+});
+
+/** @deprecated Use GET /api/figures — kept for older clients. */
+app.get("/api/featured", async (_req, res) => {
+  let featured = getFeaturedHandles();
+  if (!featured.length) {
+    setFeaturedHandles(FEATURED_DEFAULT);
+    featured = FEATURED_DEFAULT;
   }
 
   const cards = await Promise.all(
-    handles.map(async (h) => {
+    featured.map(async (h) => {
       const a = getAnalysis(h);
       const avatarFallback = fallbackAvatarUrl(h);
 
@@ -58,6 +134,8 @@ app.get("/api/featured", async (req, res) => {
           blurb: (a.narrative?.most_significant_shift || "").slice(0, 220),
           dateRange: a.dateRange,
           demo_mode: Boolean(a.meta?.demo_mode),
+          corpus_tweet_count: a.meta?.corpus_tweet_count ?? null,
+          updated_at: a.cachedAt ?? null,
         };
       }
 
@@ -74,6 +152,8 @@ app.get("/api/featured", async (req, res) => {
           ? String(tw.description).slice(0, 220)
           : "Analysis not ready yet — click Analyze or wait for background jobs.",
         demo_mode: false,
+        corpus_tweet_count: null,
+        updated_at: null,
       };
     })
   );
@@ -103,9 +183,10 @@ app.post("/api/analyze", async (req, res) => {
   if (res.flushHeaders) res.flushHeaders();
 
   const emit = (ev) => sseWrite(res, ev);
+  const forceRescrape = req.body?.forceRescrape === true;
 
   try {
-    await runPipeline(handle, emit);
+    await runPipeline(handle, emit, { forceRescrape });
   } catch (e) {
     sseWrite(res, {
       stage: "error",
@@ -133,10 +214,11 @@ function queueFeaturedBackfill() {
   });
 }
 
-app.listen(PORT, () => {
-  console.log(`API: http://localhost:${PORT}  (open the Vite app at http://127.0.0.1:5173)`);
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.warn("ANTHROPIC_API_KEY missing — pipeline uses demo scores (set key for real Claude).");
+const BIND = process.env.BIND_HOST || "0.0.0.0";
+app.listen(PORT, BIND, () => {
+  console.log(`API: http://127.0.0.1:${PORT}  (Vite UI: http://localhost:5173 — run both: npm run dev from who-changed-app)`);
+  if (!(process.env.LAVA_API_KEY || process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY)) {
+    console.warn("No LLM key configured — pipeline uses demo scores (set LAVA_API_KEY for real analysis).");
   }
   queueFeaturedBackfill();
 });

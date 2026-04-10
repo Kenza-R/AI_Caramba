@@ -33,7 +33,36 @@ db.exec(`
     sort_order INTEGER PRIMARY KEY,
     handle TEXT NOT NULL COLLATE NOCASE UNIQUE
   );
+
+  CREATE TABLE IF NOT EXISTS corpus_meta (
+    handle TEXT PRIMARY KEY COLLATE NOCASE,
+    source TEXT NOT NULL,
+    tweet_count INTEGER NOT NULL,
+    oldest_at TEXT,
+    newest_at TEXT,
+    updated_at INTEGER NOT NULL
+  );
 `);
+
+try {
+  db.prepare(
+    `
+    INSERT INTO corpus_meta (handle, source, tweet_count, oldest_at, newest_at, updated_at)
+    SELECT
+      handle,
+      'legacy_import',
+      COUNT(*),
+      MIN(created_at),
+      MAX(created_at),
+      CAST(strftime('%s','now') AS INTEGER) * 1000
+    FROM tweets
+    WHERE NOT EXISTS (SELECT 1 FROM corpus_meta c WHERE c.handle = tweets.handle COLLATE NOCASE)
+    GROUP BY handle
+  `,
+  ).run();
+} catch {
+  // ignore if tweets empty or schema edge cases
+}
 
 export function getAnalysis(handle) {
   const row = db
@@ -69,6 +98,64 @@ export function getTweetsForHandle(handle) {
       "SELECT id, handle, tweet_text, created_at, likes, retweets, replies FROM tweets WHERE handle = ? COLLATE NOCASE ORDER BY created_at ASC"
     )
     .all(handle);
+}
+
+export function getTweetStatsForHandle(handle) {
+  const row = db
+    .prepare(
+      `SELECT COUNT(*) AS n, MIN(created_at) AS oldest, MAX(created_at) AS newest
+       FROM tweets WHERE handle = ? COLLATE NOCASE`,
+    )
+    .get(handle);
+  return {
+    count: row?.n ?? 0,
+    oldest: row?.oldest ?? null,
+    newest: row?.newest ?? null,
+  };
+}
+
+/** @param {string} handle @param {{ source: string, tweet_count: number, oldest_at?: string|null, newest_at?: string|null }} meta */
+export function saveCorpusMeta(handle, meta) {
+  const now = Date.now();
+  const h = handle.toLowerCase();
+  db.prepare(
+    `INSERT INTO corpus_meta (handle, source, tweet_count, oldest_at, newest_at, updated_at)
+     VALUES (@handle, @source, @tweet_count, @oldest_at, @newest_at, @updated_at)
+     ON CONFLICT(handle) DO UPDATE SET
+       source = excluded.source,
+       tweet_count = excluded.tweet_count,
+       oldest_at = excluded.oldest_at,
+       newest_at = excluded.newest_at,
+       updated_at = excluded.updated_at`,
+  ).run({
+    handle: h,
+    source: meta.source,
+    tweet_count: meta.tweet_count,
+    oldest_at: meta.oldest_at ?? null,
+    newest_at: meta.newest_at ?? null,
+    updated_at: now,
+  });
+}
+
+export function getCorpusMeta(handle) {
+  return db
+    .prepare("SELECT * FROM corpus_meta WHERE handle = ? COLLATE NOCASE")
+    .get(handle.toLowerCase());
+}
+
+/**
+ * All completed analyses as lightweight dashboard rows (newest first).
+ * @returns {Array<{ handle: string, updated_at: number, data: object }>}
+ */
+export function listAllAnalyses() {
+  return db
+    .prepare("SELECT handle, data, updated_at FROM analyses ORDER BY updated_at DESC")
+    .all()
+    .map((row) => ({
+      handle: row.handle,
+      updated_at: row.updated_at,
+      data: JSON.parse(row.data),
+    }));
 }
 
 export function getFeaturedHandles() {

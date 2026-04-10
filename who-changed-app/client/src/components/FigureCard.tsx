@@ -36,6 +36,7 @@ const avatarFallback = (handle: string) =>
 const FigureCard = ({ figure, index }: Props) => {
   const [hovered, setHovered] = useState(false);
   const navigate = useNavigate();
+  const ready = figure.analysisReady !== false;
   const initials = figure.name
     .split(" ")
     .map((n) => n[0])
@@ -48,7 +49,7 @@ const FigureCard = ({ figure, index }: Props) => {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 + index * 0.15, duration: 0.5 }}
-      className="flex flex-col items-center cursor-pointer group"
+      className={`flex flex-col items-center cursor-pointer group ${ready ? "" : "opacity-75"}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onClick={() => navigate(`/dossier/${figure.id}`)}
@@ -62,13 +63,15 @@ const FigureCard = ({ figure, index }: Props) => {
           <div
             className="absolute -inset-2 rounded-full animate-rotate-ring"
             style={{
-              background: `conic-gradient(from 0deg, transparent, ${ringColor(figure.shiftIntensity)}, transparent 40%)`,
+              background: ready
+                ? `conic-gradient(from 0deg, transparent, ${ringColor(figure.shiftIntensity)}, transparent 40%)`
+                : "conic-gradient(from 0deg, transparent, hsla(210, 15%, 40%, 0.35), transparent 40%)",
             }}
           />
           <div
-            className={`w-24 h-24 rounded-full border-2 ${ringBorder(
-              figure.shiftIntensity,
-            )} bg-muted flex items-center justify-center overflow-hidden relative z-10`}
+            className={`w-24 h-24 rounded-full border-2 ${
+              ready ? ringBorder(figure.shiftIntensity) : "border-muted-foreground/30"
+            } bg-muted flex items-center justify-center overflow-hidden relative z-10`}
           >
             <img
               src={figure.image || avatarFallback(figure.handle)}
@@ -95,6 +98,17 @@ const FigureCard = ({ figure, index }: Props) => {
 
       <h3 className="font-display text-base font-semibold text-foreground">{figure.name}</h3>
       <p className="font-mono text-xs text-muted-foreground">{figure.handle}</p>
+      {!ready && (
+        <p className="font-mono text-[10px] text-amber/80 mt-1 tracking-wider">ANALYSIS PENDING</p>
+      )}
+      {ready && figure.demoMode && (
+        <p className="font-mono text-[10px] text-muted-foreground/70 mt-1">demo scores</p>
+      )}
+      {ready && figure.corpusTweetCount != null && figure.corpusTweetCount > 0 && (
+        <p className="font-mono text-[9px] text-muted-foreground/50 mt-0.5">
+          {figure.corpusTweetCount} posts in corpus
+        </p>
+      )}
 
       <AnimatePresence>
         {hovered && (
@@ -102,16 +116,24 @@ const FigureCard = ({ figure, index }: Props) => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="mt-3 text-center overflow-hidden"
+            className="mt-3 text-center overflow-hidden max-w-[220px]"
           >
             <div className="border-glow rounded p-3 bg-card/80 space-y-1">
-              <p className="font-mono text-xs text-primary">
-                DRIFT: <span className="font-bold">+{figure.driftScore}</span>
-              </p>
-              <p className="font-mono text-xs text-muted-foreground">{figure.biggestShift}</p>
-              <p className="font-mono text-[10px] text-muted-foreground/60">
-                {figure.shiftEvents[0]?.date || "Pending…"}
-              </p>
+              {ready ? (
+                <>
+                  <p className="font-mono text-xs text-primary">
+                    DRIFT: <span className="font-bold">+{figure.driftScore}</span>
+                  </p>
+                  <p className="font-mono text-xs text-muted-foreground">{figure.biggestShift}</p>
+                  <p className="font-mono text-[10px] text-muted-foreground/60">
+                    {figure.shiftEvents[0]?.date || "—"}
+                  </p>
+                </>
+              ) : (
+                <p className="font-mono text-[10px] text-muted-foreground leading-relaxed">
+                  Open to run the full pipeline. Scraped posts stay in the database for the next run.
+                </p>
+              )}
             </div>
           </motion.div>
         )}

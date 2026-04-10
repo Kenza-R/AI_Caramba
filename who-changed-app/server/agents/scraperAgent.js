@@ -4,7 +4,15 @@
  * 2) Twitter/X API v2 (+ optional Apify if API fails)
  * 3) Playwright scroll + Claude Vision (stance_watch / marketing_agent pattern)
  */
-import { clearTweetsForHandle, insertTweet } from "../db/database.js";
+import {
+  clearTweetsForHandle,
+  insertTweet,
+  getCorpusMeta,
+  saveCorpusMeta,
+  getTweetsForHandle,
+  getAnalysis,
+} from "../db/database.js";
+import { lookupTwitterProfileByUsername } from "../lib/twitterUser.js";
 import { withRetries } from "../lib/retry.js";
 import { searchWeb } from "../lib/webSearch.js";
 import { discoverAndIngestArchives } from "../lib/archiveIngest.js";
@@ -13,6 +21,21 @@ import { fallbackAvatarUrl } from "../lib/avatars.js";
 
 const THREE_YEARS_MS = 3 * 365 * 24 * 60 * 60 * 1000;
 const MIN_TWEETS_OK = 72;
+const MIN_CORPUS_SPAN_DAYS = 30;
+
+function corpusSourceTrusted(source) {
+  if (!source) return false;
+  if (source === "mock" || source === "mock_fallback") return false;
+  return true;
+}
+
+function corpusSpanDays(oldestIso, newestIso) {
+  if (!oldestIso || !newestIso) return 0;
+  const a = new Date(oldestIso).getTime();
+  const b = new Date(newestIso).getTime();
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return 0;
+  return Math.max(0, (b - a) / 86400000);
+}
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -175,9 +198,11 @@ function dedupeTweets(tweets) {
   return out.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 }
 
-export async function runScraperAgent(handle, emit) {
+export async function runScraperAgent(handle, emit, opts = {}) {
   const normalized = handle.replace(/^@/, "").toLowerCase();
   const start = new Date(Date.now() - THREE_YEARS_MS).toISOString();
+  const forceRescrape =
+    Boolean(opts.forceRescrape) || process.env.FORCE_RESCRAPE === "true";
   let tweets = [];
   let profile = null;
   let source = "mock";
@@ -187,7 +212,50 @@ export async function runScraperAgent(handle, emit) {
     profile = mockProfile(normalized);
     tweets = mockTweets(normalized);
     source = "mock";
-  } else {
+  } else if (!forceRescrape) {
+    const meta = getCorpusMeta(normalized);
+    const cached = getTweetsForHandle(normalized);
+    const span = corpusSpanDays(cached[0]?.created_at, cached[cached.length - 1]?.created_at);
+    const trusted = corpusSourceTrusted(meta?.source);
+    if (trusted && cached.length >= MIN_TWEETS_OK && span >= MIN_CORPUS_SPAN_DAYS) {
+      let twProfile = await lookupTwitterProfileByUsername(normalized);
+      if (!twProfile) {
+        const prev = getAnalysis(normalized);
+        if (prev?.profile?.username) twProfile = prev.profile;
+      }
+      if (!twProfile) twProfile = mockProfile(normalized);
+      const sorted = [...cached].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      emit({
+        stage: "scraper",
+        message: `Loaded ${sorted.length} posts from saved corpus (database • ${meta.source}).`,
+        detail: `Span ≈ ${Math.round(span)} days. Set FORCE_RESCRAPE=true to fetch fresh posts.`,
+        progress: 0.24,
+        done: true,
+      });
+      return {
+        handle: normalized,
+        profile: {
+          id: twProfile.id || "cached",
+          name: twProfile.name,
+          username: twProfile.username || normalized,
+          description: twProfile.description || "",
+          profile_image_url: twProfile.profile_image_url || "",
+        },
+        tweets: sorted,
+        dateRange: {
+          start: sorted[0]?.created_at || start,
+          end: sorted[sorted.length - 1]?.created_at || new Date().toISOString(),
+        },
+        scrapeMeta: {
+          source: "database_cache",
+          underlying: meta.source,
+          tweet_count: sorted.length,
+        },
+      };
+    }
+  }
+
+  if (process.env.USE_MOCK_DATA !== "true") {
     /** Step 1 — archives */
     emit({ stage: "scraper", message: "Searching for tweet archives online…", progress: 0.04 });
     const hasSearch = Boolean(process.env.SERPER_API_KEY || process.env.BRAVE_API_KEY);
@@ -327,9 +395,15 @@ export async function runScraperAgent(handle, emit) {
   }
 
   const sorted = [...tweets].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  saveCorpusMeta(normalized, {
+    source,
+    tweet_count: sorted.length,
+    oldest_at: sorted[0]?.created_at ?? null,
+    newest_at: sorted[sorted.length - 1]?.created_at ?? null,
+  });
   emit({
     stage: "scraper",
-    message: `Stored ${sorted.length} tweets (${source}).`,
+    message: `Stored ${sorted.length} tweets in database (${source}).`,
     progress: 0.24,
     done: true,
   });
@@ -348,6 +422,6 @@ export async function runScraperAgent(handle, emit) {
       start: sorted[0]?.created_at || start,
       end: sorted[sorted.length - 1]?.created_at || new Date().toISOString(),
     },
-    scrapeMeta: { source },
+    scrapeMeta: { source, tweet_count: sorted.length },
   };
 }

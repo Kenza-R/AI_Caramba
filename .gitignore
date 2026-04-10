@@ -8,6 +8,10 @@ stance_watch/profile_shots/
 stance_watch/projects/*/outputs/
 stance_watch/.venv/
 
+who-changed-app/node_modules/
 who-changed-app/server/node_modules/
 who-changed-app/client/node_modules/
 who-changed-app/server/data/
+
+# Local env secrets
+who-changed-app/server/.env

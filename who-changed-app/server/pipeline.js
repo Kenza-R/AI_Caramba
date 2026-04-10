@@ -135,6 +135,7 @@ function buildDashboardPayload({
         "AI-generated interpretation of public posts. Not a statement of private beliefs. Verify sources independently.",
       shift_stability_ring: ring,
       scrape_source: scraper.scrapeMeta?.source || "unknown",
+      corpus_tweet_count: Array.isArray(scraper.tweets) ? scraper.tweets.length : 0,
       demo_mode: Boolean(narrator?.demo_mode),
     },
   };
@@ -144,12 +145,15 @@ function buildDashboardPayload({
  * @param {string} rawHandle
  * @param {(ev: object) => void} emit
  */
-export async function runPipeline(rawHandle, emit) {
+export async function runPipeline(rawHandle, emit, opts = {}) {
   const handle = rawHandle.replace(/^@/, "").toLowerCase();
   emit({ stage: "start", message: "Starting multi-agent analysis…", progress: 0.01 });
 
-  const scraper = await runScraperAgent(handle, emit);
-  const useRealClaude = Boolean(process.env.ANTHROPIC_API_KEY) && process.env.USE_MOCK_AI !== "true";
+  const scraper = await runScraperAgent(handle, emit, {
+    forceRescrape: Boolean(opts.forceRescrape),
+  });
+  const hasLlmKey = Boolean(process.env.LAVA_API_KEY || process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY);
+  const useRealClaude = hasLlmKey && process.env.USE_MOCK_AI !== "true";
 
   let classifier;
   let shiftPack;
@@ -162,11 +166,11 @@ export async function runPipeline(rawHandle, emit) {
     withNews = await runContextAgent(shiftPack, emit);
     narrator = await runNarratorAgent(withNews, emit);
   } else {
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!hasLlmKey) {
       emit({
         stage: "classifier",
         message:
-          "ANTHROPIC_API_KEY not set — running demo stance + news + summary (add key for real Claude).",
+          "No LLM key set — running demo stance + news + summary (set LAVA_API_KEY for real analysis).",
         progress: 0.26,
       });
     }
