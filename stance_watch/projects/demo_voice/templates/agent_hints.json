@@ -1,0 +1,5 @@
+{
+  "preferred_outlet_types": ["wire services", "major newspapers", "official statements"],
+  "avoid": ["unsourced conspiracy blogs"],
+  "extra_queries": []
+}
