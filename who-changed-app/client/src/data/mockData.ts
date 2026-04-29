@@ -22,6 +22,7 @@ export interface Figure {
   analysisReady?: boolean;
   demoMode?: boolean;
   corpusTweetCount?: number | null;
+  evidenceTweets?: EvidenceTweet[];
 }
 
 export interface TopicStance {
@@ -42,6 +43,15 @@ export interface ShiftEvent {
   fissure: string;
   after: string;
   news: { headline: string; source: string }[];
+}
+
+export interface EvidenceTweet {
+  id: string;
+  text: string;
+  createdAt: string;
+  likes: number;
+  retweets: number;
+  url?: string | null;
 }
 
 const topicIcon: Record<string, string> = {
@@ -154,6 +164,14 @@ function mapDashboardToFigure(d: any): Figure {
     analysisReady: true,
     demoMode: Boolean(d?.meta?.demo_mode),
     corpusTweetCount: d?.meta?.corpus_tweet_count ?? null,
+    evidenceTweets: (Array.isArray(d?.sampleTweets) ? d.sampleTweets : []).map((t: any, i: number) => ({
+      id: String(t?.id || `evidence-${i}`),
+      text: String(t?.text || ""),
+      createdAt: String(t?.created_at || ""),
+      likes: Number(t?.likes || 0),
+      retweets: Number(t?.retweets || 0),
+      url: t?.url ? String(t.url) : null,
+    })),
   };
 
   figureCache.set(handle.toLowerCase(), fig);
@@ -196,6 +214,7 @@ export async function fetchFeaturedFigures(): Promise<Figure[]> {
       analysisReady: ready,
       demoMode: Boolean(f.demo_mode),
       corpusTweetCount: f.corpus_tweet_count ?? null,
+      evidenceTweets: [],
     };
     figureCache.set(handle, fig);
     return fig;

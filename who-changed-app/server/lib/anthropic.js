@@ -2,9 +2,17 @@ import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { readFile } from "fs/promises";
 
-const ANTHROPIC_MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-4-20250514";
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
-const LAVA_BASE = process.env.LAVA_BASE_URL || "https://api.lava.so/v1/forward";
+function getAnthropicModel() {
+  return process.env.CLAUDE_MODEL || "claude-sonnet-4-6";
+}
+
+function getGeminiModel() {
+  return process.env.GEMINI_MODEL || "gemini-2.0-flash";
+}
+
+function getLavaBase() {
+  return process.env.LAVA_BASE_URL || "https://api.lava.so/v1/forward";
+}
 const ANTHROPIC_UPSTREAM = "https://api.anthropic.com/v1/messages";
 
 function sleep(ms) {
@@ -41,9 +49,9 @@ function getProvider() {
 async function callLavaAnthropic(messages, maxTokens) {
   const key = process.env.LAVA_API_KEY;
   if (!key) throw new Error("LAVA_API_KEY is not set");
-  const u = `${LAVA_BASE}?u=${encodeURIComponent(ANTHROPIC_UPSTREAM)}`;
+  const u = `${getLavaBase()}?u=${encodeURIComponent(ANTHROPIC_UPSTREAM)}`;
   const body = {
-    model: ANTHROPIC_MODEL,
+    model: getAnthropicModel(),
     max_tokens: Math.min(maxTokens ?? 8192, 8192),
     messages,
   };
@@ -67,7 +75,7 @@ async function callGeminiText(system, user, maxTokens) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY is not set");
   const genAI = new GoogleGenerativeAI(key);
-  const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+  const model = genAI.getGenerativeModel({ model: getGeminiModel() });
   const prompt = `${system}\n\nUser input:\n${user}\n\nReturn JSON only.`;
   const r = await model.generateContent({
     contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -85,7 +93,7 @@ async function callAnthropicText(system, user, maxTokens) {
   if (!key) throw new Error("ANTHROPIC_API_KEY is not set");
   const client = new Anthropic({ apiKey: key });
   const msg = await client.messages.create({
-    model: ANTHROPIC_MODEL,
+    model: getAnthropicModel(),
     max_tokens: maxTokens,
     system,
     messages: [{ role: "user", content: user }],
@@ -103,7 +111,7 @@ async function callGeminiVisionArray(pngBuffer) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY is not set");
   const genAI = new GoogleGenerativeAI(key);
-  const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+  const model = genAI.getGenerativeModel({ model: getGeminiModel() });
   const r = await model.generateContent({
     contents: [
       {
@@ -133,7 +141,7 @@ async function callAnthropicVisionArray(pngBuffer) {
   if (!key) throw new Error("ANTHROPIC_API_KEY is not set");
   const client = new Anthropic({ apiKey: key });
   const msg = await client.messages.create({
-    model: ANTHROPIC_MODEL,
+    model: getAnthropicModel(),
     max_tokens: 4096,
     system: VISION_SYSTEM,
     messages: [
@@ -241,8 +249,8 @@ export async function callClaudeVisionExtractPostsFromFile(pngPath) {
   return callClaudeVisionExtractPosts(buf);
 }
 
-export const MODEL = process.env.LAVA_API_KEY
-  ? `${ANTHROPIC_MODEL} via Lava`
-  : process.env.GEMINI_API_KEY
-    ? GEMINI_MODEL
-    : ANTHROPIC_MODEL;
+export function getModelLabel() {
+  if (process.env.LAVA_API_KEY) return `${getAnthropicModel()} via Lava`;
+  if (process.env.GEMINI_API_KEY) return getGeminiModel();
+  return getAnthropicModel();
+}

@@ -51,6 +51,14 @@ const Index = () => {
           >
             // AI-powered ideological drift analysis • public figures • 3-year range
           </motion.p>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 2.9, duration: 0.8 }}
+            className="mt-3 text-base md:text-lg font-bold text-white whitespace-pre-line"
+          >
+            {"We don't tell you what to think.\nWe show you what was said."}
+          </motion.p>
         </motion.div>
 
         <motion.div
