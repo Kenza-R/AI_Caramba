@@ -28,6 +28,24 @@ const FEATURED_LABELS = {
 const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json({ limit: "1mb" }));
+const refreshInFlight = new Set();
+
+function hasLlmProvider() {
+  return Boolean(process.env.LAVA_API_KEY || process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY);
+}
+
+function isDemoAnalysis(a) {
+  return Boolean(a?.meta?.demo_mode);
+}
+
+function ensureRealAnalysisInBackground(handle) {
+  const h = String(handle || "").replace(/^@/, "").toLowerCase();
+  if (!h || !hasLlmProvider() || refreshInFlight.has(h)) return;
+  refreshInFlight.add(h);
+  runPipeline(h, () => {})
+    .catch((err) => console.error(`Auto-refresh failed for @${h}:`, err.message))
+    .finally(() => refreshInFlight.delete(h));
+}
 
 function sseWrite(res, obj) {
   res.write(`data: ${JSON.stringify(obj)}\n\n`);
@@ -75,6 +93,11 @@ app.get("/api/figures", async (req, res) => {
   for (const row of listAllAnalyses()) {
     const h = String(row.handle).toLowerCase();
     if (seen.has(h)) continue;
+    const a = row.data;
+    if (hasLlmProvider() && isDemoAnalysis(a)) {
+      ensureRealAnalysisInBackground(h);
+      continue;
+    }
     seen.add(h);
     ready.push(figureCardFromAnalysisRow(row));
   }
@@ -120,6 +143,23 @@ app.get("/api/featured", async (_req, res) => {
       const avatarFallback = fallbackAvatarUrl(h);
 
       if (a) {
+        if (hasLlmProvider() && isDemoAnalysis(a)) {
+          ensureRealAnalysisInBackground(h);
+          const tw = await lookupTwitterProfileByUsername(h);
+          const pic = tw?.profile_image_url || avatarFallback;
+          return {
+            handle: h,
+            ready: false,
+            name: tw?.name || FEATURED_LABELS[h] || `@${h}`,
+            username: tw?.username || h,
+            profile_image_url: pic || avatarFallback,
+            ring: "stable",
+            blurb: "Refreshing from old demo snapshot to real analysis…",
+            demo_mode: false,
+            corpus_tweet_count: null,
+            updated_at: a.cachedAt ?? null,
+          };
+        }
         const raw = a.profile?.profile_image_url || "";
         const pic = raw
           ? upgradeTwitterImageUrl(raw) || raw
@@ -167,6 +207,14 @@ app.get("/api/figure/:handle", (req, res) => {
   if (!a) {
     return res.status(404).json({ error: "not_found", message: "Run analysis first." });
   }
+  if (hasLlmProvider() && isDemoAnalysis(a)) {
+    ensureRealAnalysisInBackground(h);
+    return res.status(409).json({
+      error: "refreshing",
+      message: "Old demo snapshot detected; refreshing real analysis now. Retry shortly.",
+      handle: h,
+    });
+  }
   res.json(a);
 });
 
@@ -205,7 +253,8 @@ function queueFeaturedBackfill() {
     handles = FEATURED_DEFAULT;
   }
   handles.forEach((h, i) => {
-    if (getAnalysis(h)) return;
+    const existing = getAnalysis(h);
+    if (existing && !(hasLlmProvider() && isDemoAnalysis(existing))) return;
     setTimeout(() => {
       runPipeline(h, () => {}).catch((err) =>
         console.error(`Featured backfill failed for @${h}:`, err.message)
