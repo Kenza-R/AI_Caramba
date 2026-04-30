@@ -21,12 +21,70 @@ const PRETTY = {
   media_free_speech: "Media / Free Speech",
 };
 
-function sentenceForScore(s) {
-  if (s <= -5) return "Recent posts lean strongly progressive / left-coded on this axis.";
-  if (s <= -2) return "Recent posts lean modestly left on this axis.";
-  if (s >= 5) return "Recent posts lean strongly conservative / right-coded on this axis.";
-  if (s >= 2) return "Recent posts lean modestly right on this axis.";
-  return "Mixed or centrist signals in the latest window.";
+function preferredProfileImage(handle, rawUrl) {
+  const h = String(handle || "").replace(/^@/, "").toLowerCase();
+  if (h === "hasanabi" || h === "hasanthehun") {
+    // Force Hasan's avatar source to the canonical X profile handle requested by user.
+    return "https://unavatar.io/x/hasanthehun?fallback=https%3A%2F%2Fui-avatars.com%2Fapi%2F%3Fname%3DHA%26size%3D256%26background%3D1a222c%26color%3D6ee7d8%26bold%3Dtrue";
+  }
+  if (rawUrl) return upgradeTwitterImageUrl(rawUrl) || rawUrl;
+  return fallbackAvatarUrl(h);
+}
+
+const TOPIC_FRAMING = {
+  immigration: {
+    left: "language tends to emphasize migrant protections and humanitarian framing",
+    right: "language tends to emphasize border enforcement and restriction-first framing",
+    center: "posts mix security and humanitarian framing without a single consistent line",
+  },
+  economy: {
+    left: "posts favor redistribution, labor protections, and stronger public intervention",
+    right: "posts favor market-first growth, deregulation, and private-sector led outcomes",
+    center: "economic rhetoric mixes populist and market language across periods",
+  },
+  climate: {
+    left: "rhetoric is more aligned with urgency on emissions reduction and climate policy",
+    right: "rhetoric is more skeptical of aggressive climate mandates and prioritizes cost/energy reliability",
+    center: "climate messaging is mixed and not a dominant organizing theme",
+  },
+  healthcare: {
+    left: "posts lean toward public guarantees and expanded coverage expectations",
+    right: "posts lean toward private-choice, cost-control, and anti-bureaucratic framing",
+    center: "healthcare references are episodic with no strong directional anchor",
+  },
+  foreign_policy: {
+    left: "tone is relatively restraint-oriented with multilateral emphasis",
+    right: "tone is more hawkish/national-interest oriented with strength-first framing",
+    center: "foreign policy references are mixed between restraint and hard-power language",
+  },
+  social_issues: {
+    left: "posts generally align with progressive social/civil-rights framing",
+    right: "posts generally align with conservative/traditional social framing",
+    center: "social-issue language is mixed, situational, or weakly signaled",
+  },
+  media_free_speech: {
+    left: "speech/media critiques mostly target concentration, access, and platform power",
+    right: "speech/media critiques mostly center censorship, bias, and viewpoint suppression",
+    center: "media/free-speech commentary is mixed and often reactive to events",
+  },
+};
+
+function sentenceForScore(topic, score, firstScore) {
+  const d = score - (firstScore ?? score);
+  const drift =
+    d > 1.5 ? " It has moved right versus the earlier window." :
+    d < -1.5 ? " It has moved left versus the earlier window." :
+    " It has stayed relatively stable versus the earlier window.";
+  const framing = TOPIC_FRAMING[topic] || {
+    left: "signals skew progressive/left",
+    right: "signals skew conservative/right",
+    center: "signals are mixed/centrist",
+  };
+  if (score <= -5) return `Strongly left-coded on this axis: ${framing.left}.${drift}`;
+  if (score <= -2) return `Moderately left-coded on this axis: ${framing.left}.${drift}`;
+  if (score >= 5) return `Strongly right-coded on this axis: ${framing.right}.${drift}`;
+  if (score >= 2) return `Moderately right-coded on this axis: ${framing.right}.${drift}`;
+  return `Mixed or centrist on this axis: ${framing.center}.${drift}`;
 }
 
 function trendArrow(firstScore, lastScore) {
@@ -48,7 +106,7 @@ function buildIssuesGrid(timeline, topics) {
       return {
         key: topic,
         topic: PRETTY[topic] || topic,
-        current_stance: sentenceForScore(b),
+        current_stance: sentenceForScore(topic, b, a),
         trend: trendArrow(a, b),
         score_current: b,
         score_previous: a,
@@ -100,9 +158,7 @@ function buildDashboardPayload({
   const currentOverall = timeline.at(-1)?.overall ?? 0;
   const pastOverall = timeline[0]?.overall ?? 0;
 
-  const pic = profile?.profile_image_url
-    ? upgradeTwitterImageUrl(profile.profile_image_url)
-    : fallbackAvatarUrl(handle);
+  const pic = preferredProfileImage(handle, profile?.profile_image_url);
   const profileOut = { ...profile, profile_image_url: pic || fallbackAvatarUrl(handle) };
 
   return {

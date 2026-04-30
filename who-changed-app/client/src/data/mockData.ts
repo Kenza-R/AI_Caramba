@@ -230,6 +230,9 @@ export async function fetchFigureById(id: string): Promise<Figure | null> {
     throw new Error(explainApiNetworkError(e));
   }
   if (r.status === 404) return null;
+  // API is auto-refreshing an old demo snapshot in background.
+  // Treat as cache-miss so Dossier can trigger analyze/reload flow.
+  if (r.status === 409) return null;
   if (!r.ok) throw new Error("Failed to load figure dossier");
   const data = await r.json();
   return mapDashboardToFigure(data);

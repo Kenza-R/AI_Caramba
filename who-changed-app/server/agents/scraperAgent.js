@@ -17,7 +17,7 @@ import { withRetries } from "../lib/retry.js";
 import { searchWeb } from "../lib/webSearch.js";
 import { discoverAndIngestArchives, tryFetchArchiveUrl } from "../lib/archiveIngest.js";
 import { runScreenshotVisionScrape } from "./screenshotVisionScrape.js";
-import { fallbackAvatarUrl } from "../lib/avatars.js";
+import { fallbackAvatarUrl, canonicalXHandle } from "../lib/avatars.js";
 
 const THREE_YEARS_MS = 3 * 365 * 24 * 60 * 60 * 1000;
 const MIN_TWEETS_OK = 72;
@@ -60,12 +60,23 @@ function sanitizeUnicode(s) {
 
 function mockProfile(handle) {
   const h = handle.replace(/^@/, "").toLowerCase();
+  const username = canonicalXHandle(h);
+  const known = {
+    hasanabi: { name: "Hasan Piker", username: "hasanthehun" },
+    hasanthehun: { name: "Hasan Piker", username: "hasanthehun" },
+    elonmusk: { name: "Elon Musk", username: "elonmusk" },
+    tuckercarlson: { name: "Tucker Carlson", username: "tuckercarlson" },
+    tulsigabbard: { name: "Tulsi Gabbard", username: "tulsigabbard" },
+    billmaher: { name: "Bill Maher", username: "billmaher" },
+    realdonaldtrump: { name: "Donald J. Trump", username: "realDonaldTrump" },
+  }[h];
   return {
     id: "mock_user",
-    name: h,
-    username: h,
-    description: "Synthetic profile for mock data mode.",
-    profile_image_url: fallbackAvatarUrl(h),
+    name: known?.name || h,
+    username: known?.username || username,
+    description:
+      "Profile metadata could not be verified from live APIs in this run; analysis uses available public-text corpus.",
+    profile_image_url: fallbackAvatarUrl(known?.username || username),
   };
 }
 
