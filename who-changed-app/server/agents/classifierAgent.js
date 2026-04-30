@@ -29,6 +29,14 @@ const MIN_TOPIC_HITS_PER_TOPIC = Math.max(
   1,
   Math.min(8, Number(process.env.MIN_TOPIC_HITS_PER_TOPIC || 2) || 2)
 );
+const MIN_TOPIC_HITS_PER_WINDOW = Math.max(
+  1,
+  Math.min(10, Number(process.env.MIN_TOPIC_HITS_PER_WINDOW || 2) || 2)
+);
+const MIN_TOPIC_BASELINE_HITS = Math.max(
+  2,
+  Math.min(20, Number(process.env.MIN_TOPIC_BASELINE_HITS || 4) || 4)
+);
 
 /** Weighted emphasis for overall score (sums to 1). */
 const TOPIC_WEIGHTS = {
@@ -150,6 +158,23 @@ function topicCoverage(tweets) {
   return { hits, coveredTopics };
 }
 
+function topicHitsInTweets(tweets) {
+  const hits = Object.fromEntries(TOPICS.map((t) => [t, 0]));
+  for (const t of tweets) {
+    const txt = String(t?.tweet_text || "").toLowerCase();
+    for (const topic of TOPICS) {
+      const kws = TOPIC_KEYWORDS[topic] || [];
+      for (const kw of kws) {
+        if (txt.includes(kw)) {
+          hits[topic] += 1;
+          break;
+        }
+      }
+    }
+  }
+  return hits;
+}
+
 export async function runClassifierAgent(scraperResult, emit) {
   emit({ stage: "classifier", message: "Classifying stances…", progress: 0.28 });
   const { handle, tweets } = scraperResult;
@@ -167,8 +192,14 @@ export async function runClassifierAgent(scraperResult, emit) {
   const grouped = groupByWindow(tweets);
   const windows = grouped.windows;
   const timeline = [];
+  const runningTopicHits = Object.fromEntries(TOPICS.map((t) => [t, 0]));
+  const topicBaselines = {};
 
   for (const [period, tws] of windows) {
+    const topicHits = topicHitsInTweets(tws);
+    for (const topic of TOPICS) {
+      runningTopicHits[topic] += topicHits[topic] || 0;
+    }
     const batches = chunk(tws, 50);
     const parts = [];
     let b = 0;
@@ -183,11 +214,29 @@ export async function runClassifierAgent(scraperResult, emit) {
       b += 1;
     }
     const merged = averageScores(parts);
+
+    // Enforce minimum per-topic evidence before allowing score drift.
+    // If a topic is under-covered in this window, carry forward prior value.
+    const prev = timeline[timeline.length - 1];
+    for (const topic of TOPICS) {
+      if ((topicHits[topic] || 0) < MIN_TOPIC_HITS_PER_WINDOW && prev) {
+        merged.scores[topic] = prev.scores?.[topic] ?? merged.scores[topic];
+      }
+      if (!topicBaselines[topic] && (runningTopicHits[topic] || 0) >= MIN_TOPIC_BASELINE_HITS) {
+        topicBaselines[topic] = {
+          period,
+          score: merged.scores[topic] ?? 0,
+          cumulative_hits: runningTopicHits[topic] || 0,
+        };
+      }
+    }
+
     timeline.push({
       period,
       scores: merged.scores,
       overall: overallScoreWeighted(merged.scores),
       summary: merged.summary,
+      topic_hits: topicHits,
     });
   }
 
@@ -197,5 +246,15 @@ export async function runClassifierAgent(scraperResult, emit) {
     progress: 0.52,
     done: true,
   });
-  return { handle, timeline, topics: TOPICS };
+  return {
+    handle,
+    timeline,
+    topics: TOPICS,
+    analysis_meta: {
+      topic_baselines: topicBaselines,
+      min_topic_hits_per_window: MIN_TOPIC_HITS_PER_WINDOW,
+      min_topic_baseline_hits: MIN_TOPIC_BASELINE_HITS,
+      chronological: true,
+    },
+  };
 }
