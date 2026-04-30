@@ -9,6 +9,19 @@ interface Props {
 const ShiftTimeline = ({ events }: Props) => {
   const [expanded, setExpanded] = useState<string | null>(null);
 
+  if (!events.length) {
+    return (
+      <div className="border border-primary/15 rounded-lg p-4 bg-card/30">
+        <p className="font-mono text-xs tracking-wider text-muted-foreground/80">
+          No timeline shifts detected yet.
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          We need multiple time windows of posts to compare before/after changes. Try re-running analysis on a handle with a longer post history.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full overflow-x-auto pb-4">
       {/* Desktop: horizontal */}

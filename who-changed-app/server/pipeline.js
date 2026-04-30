@@ -78,6 +78,9 @@ function sampleTweetsForShifts(handle, shifts, limit = 8) {
     created_at: t.created_at,
     likes: t.likes,
     retweets: t.retweets,
+    url: /^\d+$/.test(String(t.id || ""))
+      ? `https://x.com/${String(handle || "").replace(/^@/, "")}/status/${t.id}`
+      : null,
   }));
 }
 
