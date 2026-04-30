@@ -156,7 +156,17 @@ export async function runPipeline(rawHandle, emit, opts = {}) {
     forceRescrape: Boolean(opts.forceRescrape),
   });
   const hasLlmKey = Boolean(process.env.LAVA_API_KEY || process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY);
-  const useRealClaude = hasLlmKey && process.env.USE_MOCK_AI !== "true";
+  const scrapeSource = scraper?.scrapeMeta?.source || "unknown";
+  const scrapeUnderlying = scraper?.scrapeMeta?.underlying || "";
+  const hasSyntheticCorpus =
+    scrapeSource === "mock" ||
+    scrapeSource === "mock_fallback" ||
+    scrapeUnderlying === "mock" ||
+    scrapeUnderlying === "mock_fallback";
+  const useRealClaude =
+    hasLlmKey &&
+    process.env.USE_MOCK_AI !== "true" &&
+    !hasSyntheticCorpus;
 
   let classifier;
   let shiftPack;
@@ -174,6 +184,13 @@ export async function runPipeline(rawHandle, emit, opts = {}) {
         stage: "classifier",
         message:
           "No LLM key set — running demo stance + news + summary (set LAVA_API_KEY for real analysis).",
+        progress: 0.26,
+      });
+    } else if (hasSyntheticCorpus) {
+      emit({
+        stage: "classifier",
+        message:
+          "Synthetic corpus detected — using grounded mock analysis instead of faux-real scoring.",
         progress: 0.26,
       });
     }

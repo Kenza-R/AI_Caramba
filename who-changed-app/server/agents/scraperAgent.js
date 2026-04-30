@@ -15,13 +15,19 @@ import {
 import { lookupTwitterProfileByUsername } from "../lib/twitterUser.js";
 import { withRetries } from "../lib/retry.js";
 import { searchWeb } from "../lib/webSearch.js";
-import { discoverAndIngestArchives } from "../lib/archiveIngest.js";
+import { discoverAndIngestArchives, tryFetchArchiveUrl } from "../lib/archiveIngest.js";
 import { runScreenshotVisionScrape } from "./screenshotVisionScrape.js";
 import { fallbackAvatarUrl } from "../lib/avatars.js";
 
 const THREE_YEARS_MS = 3 * 365 * 24 * 60 * 60 * 1000;
 const MIN_TWEETS_OK = 72;
 const MIN_CORPUS_SPAN_DAYS = 30;
+const TRUMP_TRUTH_ARCHIVE_JSON = "https://ix.cnn.io/data/truth-social/truth_archive.json";
+
+function isTrumpHandle(h) {
+  const n = String(h || "").replace(/^@/, "").toLowerCase();
+  return n === "realdonaldtrump" || n === "donaldtrump";
+}
 
 function corpusSourceTrusted(source) {
   if (!source) return false;
@@ -39,6 +45,17 @@ function corpusSpanDays(oldestIso, newestIso) {
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * Remove invalid Unicode surrogate code units that can break JSON encoding
+ * for upstream model APIs.
+ */
+function sanitizeUnicode(s) {
+  return String(s || "").replace(
+    /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/g,
+    ""
+  );
 }
 
 function mockProfile(handle) {
@@ -190,10 +207,11 @@ function dedupeTweets(tweets) {
   const seen = new Set();
   const out = [];
   for (const t of tweets) {
-    const key = `${(t.created_at || "").slice(0, 10)}|${(t.tweet_text || "").slice(0, 140).toLowerCase()}`;
+    const cleanText = sanitizeUnicode(t.tweet_text || "");
+    const key = `${(t.created_at || "").slice(0, 10)}|${cleanText.slice(0, 140).toLowerCase()}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push(t);
+    out.push({ ...t, tweet_text: cleanText });
   }
   return out.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 }
@@ -258,6 +276,29 @@ export async function runScraperAgent(handle, emit, opts = {}) {
   if (process.env.USE_MOCK_DATA !== "true") {
     /** Step 1 — archives */
     emit({ stage: "scraper", message: "Searching for tweet archives online…", progress: 0.04 });
+
+    // Special-case: known public Truth Social archive for Donald Trump.
+    if (isTrumpHandle(normalized) && tweets.length < MIN_TWEETS_OK) {
+      const truthRows = await tryFetchArchiveUrl(TRUMP_TRUTH_ARCHIVE_JSON, { timeoutMs: 30000 });
+      if (truthRows.length) {
+        tweets = truthRows;
+        source = "truth_social_archive";
+        profile = {
+          id: "truthsocial_realdonaldtrump",
+          name: "Donald J. Trump",
+          username: "realDonaldTrump",
+          description: "Truth Social archive corpus",
+          profile_image_url: fallbackAvatarUrl("realdonaldtrump"),
+        };
+        emit({
+          stage: "scraper",
+          message: `Loaded ${tweets.length} posts from Truth Social archive.`,
+          detail: TRUMP_TRUTH_ARCHIVE_JSON,
+          progress: 0.15,
+        });
+      }
+    }
+
     const hasSearch = Boolean(process.env.SERPER_API_KEY || process.env.BRAVE_API_KEY);
     if (!hasSearch) {
       emit({
@@ -388,13 +429,21 @@ export async function runScraperAgent(handle, emit, opts = {}) {
   }
 
   tweets = dedupeTweets(tweets);
+  const startMs = new Date(start).getTime();
+  // Keep analysis bounded to ~3 years and API-scale corpus size.
+  tweets = tweets
+    .filter((t) => {
+      const ms = new Date(t.created_at).getTime();
+      return Number.isFinite(ms) && ms >= startMs;
+    })
+    .slice(-3200);
 
   clearTweetsForHandle(normalized);
   for (const t of tweets) {
     insertTweet({
       id: t.id,
       handle: normalized,
-      tweet_text: t.tweet_text,
+      tweet_text: sanitizeUnicode(t.tweet_text),
       created_at: t.created_at,
       likes: t.likes,
       retweets: t.retweets,

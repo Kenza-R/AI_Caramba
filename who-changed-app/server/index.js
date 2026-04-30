@@ -17,12 +17,13 @@ import { fallbackAvatarUrl, upgradeTwitterImageUrl } from "./lib/avatars.js";
 import { lookupTwitterProfileByUsername } from "./lib/twitterUser.js";
 
 const PORT = Number(process.env.PORT || 3001);
-const FEATURED_DEFAULT = ["elonmusk", "tuckercarlson", "tulsigabbard", "billmaher"];
+const FEATURED_DEFAULT = ["elonmusk", "tuckercarlson", "tulsigabbard", "billmaher", "hasanabi"];
 const FEATURED_LABELS = {
   elonmusk: "Elon Musk",
   tuckercarlson: "Tucker Carlson",
   tulsigabbard: "Tulsi Gabbard",
   billmaher: "Bill Maher",
+  hasanabi: "Hasan Piker",
 };
 
 const app = express();

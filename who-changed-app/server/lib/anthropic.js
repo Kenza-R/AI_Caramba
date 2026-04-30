@@ -15,6 +15,38 @@ function getLavaBase() {
 }
 const ANTHROPIC_UPSTREAM = "https://api.anthropic.com/v1/messages";
 
+function sanitizeUnicodeString(s) {
+  const str = String(s ?? "");
+  let out = "";
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    // high surrogate
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = i + 1 < str.length ? str.charCodeAt(i + 1) : 0;
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        out += str[i] + str[i + 1];
+        i++;
+      }
+      continue;
+    }
+    // low surrogate without preceding high surrogate
+    if (code >= 0xdc00 && code <= 0xdfff) continue;
+    out += str[i];
+  }
+  return out;
+}
+
+function sanitizeForJson(value) {
+  if (typeof value === "string") return sanitizeUnicodeString(value);
+  if (Array.isArray(value)) return value.map(sanitizeForJson);
+  if (value && typeof value === "object") {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) out[k] = sanitizeForJson(v);
+    return out;
+  }
+  return value;
+}
+
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -53,7 +85,7 @@ async function callLavaAnthropic(messages, maxTokens) {
   const body = {
     model: getAnthropicModel(),
     max_tokens: Math.min(maxTokens ?? 8192, 8192),
-    messages,
+    messages: sanitizeForJson(messages),
   };
   const res = await fetch(u, {
     method: "POST",
