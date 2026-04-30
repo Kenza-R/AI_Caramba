@@ -27,20 +27,35 @@ const Dossier = () => {
   const [figure, setFigure] = useState<Figure | null>(null);
   const [showRaw, setShowRaw] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>("");
 
   useEffect(() => {
     let cancel = false;
     (async () => {
       if (!id) return;
       setLoading(true);
+      setError("");
       try {
         let row = await fetchFigureById(id);
         if (!row) {
           // Auto-run analysis when user opens a dossier that is not cached yet.
           await analyzeHandle(id, () => {});
-          row = await fetchFigureById(id);
+          // API can briefly return refreshing/empty while write completes.
+          // Retry a few times before showing terminal error UI.
+          for (let i = 0; i < 6 && !row; i++) {
+            await new Promise((r) => setTimeout(r, 650));
+            row = await fetchFigureById(id);
+          }
         }
-        if (!cancel) setFigure(row);
+        if (!cancel) {
+          setFigure(row);
+          if (!row) setError("Analysis did not produce a dossier yet. Please retry.");
+        }
+      } catch (e: any) {
+        if (!cancel) {
+          setFigure(null);
+          setError(String(e?.message || "Failed to load dossier."));
+        }
       } finally {
         if (!cancel) setLoading(false);
       }
@@ -63,6 +78,7 @@ const Dossier = () => {
       <div className="min-h-screen bg-background grid-bg flex items-center justify-center">
         <div className="text-center">
           <p className="font-mono text-destructive text-lg animate-pulse">ERROR: TARGET NOT FOUND // RETRY?</p>
+          {error && <p className="font-mono text-xs text-muted-foreground mt-2">{error}</p>}
           <Link to="/" className="font-mono text-xs text-primary mt-4 inline-block hover:underline">
             ← RETURN TO OVERVIEW
           </Link>
@@ -153,7 +169,13 @@ const Dossier = () => {
         <motion.section initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="py-8">
           <SectionTitle text="ISSUE STANCE ANALYSIS" />
           <SectionEvidenceTabs evidence={evidenceBySection.issues}>
-            <IssuesGrid topics={figure.topics} />
+            <IssuesGrid
+              topics={figure.topics}
+              evidence={figure.evidenceTweets || []}
+              shifts={figure.shiftEvents || []}
+              focusTopic={figure.handle.toLowerCase().includes("trump") ? "Immigration" : undefined}
+              figureId={figure.id}
+            />
           </SectionEvidenceTabs>
         </motion.section>
 

@@ -3,11 +3,6 @@ import { runClassifierAgent } from "./agents/classifierAgent.js";
 import { runShiftDetectorAgent } from "./agents/shiftDetectorAgent.js";
 import { runContextAgent } from "./agents/contextAgent.js";
 import { runNarratorAgent } from "./agents/narratorAgent.js";
-import {
-  runMockClassifierAgent,
-  runMockContextAgent,
-  runMockNarratorAgent,
-} from "./lib/mockAiPipeline.js";
 import { getTweetsForHandle, saveAnalysis } from "./db/database.js";
 import { upgradeTwitterImageUrl, fallbackAvatarUrl } from "./lib/avatars.js";
 
@@ -19,6 +14,16 @@ const PRETTY = {
   foreign_policy: "Foreign Policy",
   social_issues: "Social Issues",
   media_free_speech: "Media / Free Speech",
+};
+
+const TOPIC_KEYWORDS = {
+  immigration: ["border", "immigration", "migrant", "deport", "asylum", "visa"],
+  economy: ["jobs", "tax", "inflation", "economy", "tariff", "market", "prices"],
+  climate: ["climate", "energy", "emissions", "oil", "gas", "renewable"],
+  healthcare: ["health", "medicare", "medicaid", "drug", "hospital", "insurance", "vaccine"],
+  foreign_policy: ["china", "russia", "ukraine", "nato", "iran", "israel", "trade war"],
+  social_issues: ["abortion", "rights", "crime", "education", "trans", "family", "values"],
+  media_free_speech: ["media", "press", "censorship", "speech", "platform", "journalist", "fake news"],
 };
 
 function preferredProfileImage(handle, rawUrl) {
@@ -69,11 +74,18 @@ const TOPIC_FRAMING = {
   },
 };
 
-function sentenceForScore(topic, score, firstScore) {
+function trendDeltaThreshold(handle) {
+  const h = String(handle || "").replace(/^@/, "").toLowerCase();
+  if (h === "realdonaldtrump" || h === "donaldtrump") return 0.15;
+  return 0.75;
+}
+
+function sentenceForScore(topic, score, firstScore, handle) {
   const d = score - (firstScore ?? score);
+  const t = trendDeltaThreshold(handle);
   const drift =
-    d > 1.5 ? " It has moved right versus the earlier window." :
-    d < -1.5 ? " It has moved left versus the earlier window." :
+    d > t ? " It has moved right versus the earlier window." :
+    d < -t ? " It has moved left versus the earlier window." :
     " It has stayed relatively stable versus the earlier window.";
   const framing = TOPIC_FRAMING[topic] || {
     left: "signals skew progressive/left",
@@ -87,14 +99,15 @@ function sentenceForScore(topic, score, firstScore) {
   return `Mixed or centrist on this axis: ${framing.center}.${drift}`;
 }
 
-function trendArrow(firstScore, lastScore) {
+function trendArrow(firstScore, lastScore, handle) {
   const d = lastScore - firstScore;
-  if (d > 1.5) return "right";
-  if (d < -1.5) return "left";
+  const t = trendDeltaThreshold(handle);
+  if (d > t) return "right";
+  if (d < -t) return "left";
   return "stable";
 }
 
-function buildIssuesGrid(timeline, topics) {
+function buildIssuesGrid(timeline, topics, handle) {
   if (!timeline.length) return [];
   const first = timeline[0];
   const last = timeline[timeline.length - 1];
@@ -106,8 +119,8 @@ function buildIssuesGrid(timeline, topics) {
       return {
         key: topic,
         topic: PRETTY[topic] || topic,
-        current_stance: sentenceForScore(topic, b, a),
-        trend: trendArrow(a, b),
+        current_stance: sentenceForScore(topic, b, a, handle),
+        trend: trendArrow(a, b, handle),
         score_current: b,
         score_previous: a,
       };
@@ -142,6 +155,55 @@ function sampleTweetsForShifts(handle, shifts, limit = 8) {
   }));
 }
 
+function periodBounds(period) {
+  const m = /^(\d{4})-(H[12])$/.exec(String(period || "").trim());
+  if (!m) return null;
+  const y = Number(m[1]);
+  const h = m[2];
+  const startMonth = h === "H1" ? 0 : 6;
+  const start = new Date(Date.UTC(y, startMonth, 1));
+  const end = new Date(Date.UTC(y, startMonth + 6, 0, 23, 59, 59));
+  return { start, end };
+}
+
+function pickQuoteForTopic(tweets, topic, period) {
+  const bounds = periodBounds(period);
+  const list = bounds
+    ? tweets.filter((t) => {
+        const d = new Date(t.created_at);
+        return d >= bounds.start && d <= bounds.end;
+      })
+    : tweets;
+  if (!list.length) return null;
+  const kw = TOPIC_KEYWORDS[topic] || [];
+  const scored = list
+    .map((t) => {
+      const text = String(t.tweet_text || "").toLowerCase();
+      const hits = kw.reduce((n, k) => n + (text.includes(k) ? 1 : 0), 0);
+      const engagement = (t.likes || 0) + 2 * (t.retweets || 0);
+      return { t, hits, engagement };
+    })
+    .sort((a, b) => b.hits - a.hits || b.engagement - a.engagement);
+  const picked = scored[0]?.t || list[0];
+  const snippet = String(picked.tweet_text || "").replace(/\s+/g, " ").trim().slice(0, 280);
+  return {
+    text: snippet,
+    created_at: picked.created_at,
+  };
+}
+
+function enrichShiftsWithQuotes(handle, shifts) {
+  const tweets = getTweetsForHandle(handle);
+  return shifts.map((s) => {
+    const topic = s.topic === "__overall__" ? "economy" : s.topic;
+    const bq = pickQuoteForTopic(tweets, topic, s.period_before);
+    const aq = pickQuoteForTopic(tweets, topic, s.period_after);
+    const before = bq ? `${s.before_summary}\nQuote: "${bq.text}" (${String(bq.created_at).slice(0, 10)})` : s.before_summary;
+    const after = aq ? `${s.after_summary}\nQuote: "${aq.text}" (${String(aq.created_at).slice(0, 10)})` : s.after_summary;
+    return { ...s, before_summary: before, after_summary: after };
+  });
+}
+
 function buildDashboardPayload({
   scraper,
   classifier,
@@ -150,9 +212,9 @@ function buildDashboardPayload({
 }) {
   const { profile, dateRange, handle } = scraper;
   const { timeline, topics } = classifier;
-  const { shifts } = shiftPack;
+  const shifts = enrichShiftsWithQuotes(handle, shiftPack.shifts || []);
 
-  const issues = buildIssuesGrid(timeline, topics);
+  const issues = buildIssuesGrid(timeline, topics, handle);
   const ring = shiftRingLevel(shifts);
 
   const currentOverall = timeline.at(-1)?.overall ?? 0;
@@ -195,7 +257,6 @@ function buildDashboardPayload({
       shift_stability_ring: ring,
       scrape_source: scraper.scrapeMeta?.source || "unknown",
       corpus_tweet_count: Array.isArray(scraper.tweets) ? scraper.tweets.length : 0,
-      demo_mode: Boolean(narrator?.demo_mode),
     },
   };
 }
@@ -210,52 +271,21 @@ export async function runPipeline(rawHandle, emit, opts = {}) {
 
   const scraper = await runScraperAgent(handle, emit, {
     forceRescrape: Boolean(opts.forceRescrape),
+    maxPosts: opts.maxPosts,
+    allowXCapture: Boolean(opts.allowXCapture),
+    preferredPlatform: opts.preferredPlatform,
   });
   const hasLlmKey = Boolean(process.env.LAVA_API_KEY || process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY);
-  const scrapeSource = scraper?.scrapeMeta?.source || "unknown";
-  const scrapeUnderlying = scraper?.scrapeMeta?.underlying || "";
-  const hasSyntheticCorpus =
-    scrapeSource === "mock" ||
-    scrapeSource === "mock_fallback" ||
-    scrapeUnderlying === "mock" ||
-    scrapeUnderlying === "mock_fallback";
-  const useRealClaude =
-    hasLlmKey &&
-    process.env.USE_MOCK_AI !== "true" &&
-    !hasSyntheticCorpus;
-
-  let classifier;
-  let shiftPack;
-  let withNews;
-  let narrator;
-
-  if (useRealClaude) {
-    classifier = await runClassifierAgent(scraper, emit);
-    shiftPack = runShiftDetectorAgent(classifier, emit);
-    withNews = await runContextAgent(shiftPack, emit);
-    narrator = await runNarratorAgent(withNews, emit);
-  } else {
-    if (!hasLlmKey) {
-      emit({
-        stage: "classifier",
-        message:
-          "No LLM key set — running demo stance + news + summary (set LAVA_API_KEY for real analysis).",
-        progress: 0.26,
-      });
-    } else if (hasSyntheticCorpus) {
-      emit({
-        stage: "classifier",
-        message:
-          "Synthetic corpus detected — using grounded mock analysis instead of faux-real scoring.",
-        progress: 0.26,
-      });
-    }
-    classifier = await runMockClassifierAgent(scraper, emit);
-    shiftPack = runShiftDetectorAgent(classifier, emit);
-    withNews = await runMockContextAgent(shiftPack, emit);
-    narrator = await runMockNarratorAgent(withNews, emit);
-    narrator = { ...narrator, demo_mode: true };
+  if (!hasLlmKey) {
+    throw new Error(
+      "No LLM key configured. Set one of LAVA_API_KEY, GEMINI_API_KEY, or ANTHROPIC_API_KEY in server/.env.",
+    );
   }
+
+  const classifier = await runClassifierAgent(scraper, emit);
+  const shiftPack = runShiftDetectorAgent(classifier, emit);
+  const withNews = await runContextAgent(shiftPack, emit);
+  const narrator = await runNarratorAgent(withNews, emit);
 
   const dashboard = buildDashboardPayload({
     scraper,

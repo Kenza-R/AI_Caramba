@@ -64,13 +64,17 @@ const FigureCard = ({ figure, index }: Props) => {
             className="absolute -inset-2 rounded-full animate-rotate-ring"
             style={{
               background: ready
-                ? `conic-gradient(from 0deg, transparent, ${ringColor(figure.shiftIntensity)}, transparent 40%)`
+                ? `conic-gradient(from 0deg, transparent, ${
+                    ringColor(figure.shiftIntensity)
+                  }, transparent 40%)`
                 : "conic-gradient(from 0deg, transparent, hsla(210, 15%, 40%, 0.35), transparent 40%)",
             }}
           />
           <div
             className={`w-24 h-24 rounded-full border-2 ${
-              ready ? ringBorder(figure.shiftIntensity) : "border-muted-foreground/30"
+              ready
+                ? ringBorder(figure.shiftIntensity)
+                : "border-muted-foreground/30"
             } bg-muted flex items-center justify-center overflow-hidden relative z-10`}
           >
             <img
@@ -100,9 +104,6 @@ const FigureCard = ({ figure, index }: Props) => {
       <p className="font-mono text-xs text-muted-foreground">{figure.handle}</p>
       {!ready && (
         <p className="font-mono text-[10px] text-amber/80 mt-1 tracking-wider">ANALYSIS PENDING</p>
-      )}
-      {ready && figure.demoMode && (
-        <p className="font-mono text-[10px] text-muted-foreground/70 mt-1">demo scores</p>
       )}
       {ready && figure.corpusTweetCount != null && figure.corpusTweetCount > 0 && (
         <p className="font-mono text-[9px] text-muted-foreground/50 mt-0.5">

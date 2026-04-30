@@ -33,7 +33,7 @@ const Index = () => {
       <ParticleBackground />
       <Navbar />
 
-      <section className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6">
+      <section className="relative z-10 min-h-screen flex flex-col items-center justify-start px-6 pt-32 md:pt-36 pb-20">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -65,7 +65,7 @@ const Index = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.5, duration: 0.8 }}
-          className="mt-16 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-10 max-w-6xl w-full px-2"
+          className="mt-12 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-10 max-w-6xl w-full px-2"
         >
           {figures.map((fig, i) => (
             <FigureCard key={fig.id} figure={fig} index={i} />
@@ -76,7 +76,7 @@ const Index = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 2, duration: 0.6 }}
-          className="mt-20 w-full max-w-2xl"
+          className="mt-12 w-full max-w-2xl"
         >
           <TerminalSearch />
         </motion.div>
@@ -85,7 +85,7 @@ const Index = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.3 }}
           transition={{ delay: 3 }}
-          className="absolute bottom-8 font-mono text-xs text-muted-foreground"
+          className="mt-8 font-mono text-xs text-muted-foreground"
         >
           ▼ SELECT A TARGET TO BEGIN ▼
         </motion.div>

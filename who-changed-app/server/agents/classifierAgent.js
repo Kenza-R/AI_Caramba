@@ -1,5 +1,5 @@
 /**
- * Agent 2 — The Analyst: 6-month windows, batched Claude classification.
+ * Agent 2 — The Analyst: adaptive windows, batched Claude classification.
  */
 import { callClaudeJson } from "../lib/anthropic.js";
 
@@ -12,6 +12,23 @@ const TOPICS = [
   "social_issues",
   "media_free_speech",
 ];
+const TOPIC_KEYWORDS = {
+  immigration: ["border", "immigration", "migrant", "deport", "asylum", "visa"],
+  economy: ["economy", "inflation", "jobs", "tax", "tariff", "market", "price"],
+  climate: ["climate", "energy", "emissions", "oil", "gas", "renewable"],
+  healthcare: ["health", "medicare", "medicaid", "drug", "hospital", "insurance", "vaccine"],
+  foreign_policy: ["china", "russia", "ukraine", "nato", "iran", "israel", "war"],
+  social_issues: ["abortion", "rights", "crime", "education", "trans", "family", "values"],
+  media_free_speech: ["media", "press", "censorship", "speech", "platform", "journalist", "fake news"],
+};
+const MIN_TOPIC_COVERAGE_TOPICS = Math.max(
+  4,
+  Math.min(7, Number(process.env.MIN_TOPIC_COVERAGE_TOPICS || 5) || 5)
+);
+const MIN_TOPIC_HITS_PER_TOPIC = Math.max(
+  1,
+  Math.min(8, Number(process.env.MIN_TOPIC_HITS_PER_TOPIC || 2) || 2)
+);
 
 /** Weighted emphasis for overall score (sums to 1). */
 const TOPIC_WEIGHTS = {
@@ -37,15 +54,35 @@ function halfYearKey(d) {
   return `${y}-${half}`;
 }
 
+function quarterKey(d) {
+  const y = d.getUTCFullYear();
+  const q = Math.floor(d.getUTCMonth() / 3) + 1;
+  return `${y}-Q${q}`;
+}
+
+function corpusSpanDays(tweets) {
+  if (!tweets.length) return 0;
+  const min = new Date(tweets[0].created_at).getTime();
+  const max = new Date(tweets[tweets.length - 1].created_at).getTime();
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return 0;
+  return Math.max(0, (max - min) / 86400000);
+}
+
 function groupByWindow(tweets) {
+  const spanDays = corpusSpanDays(tweets);
+  const useQuarter = spanDays <= 700; // finer granularity for short corpora
+  const keyFn = useQuarter ? quarterKey : halfYearKey;
   const map = new Map();
   for (const tw of tweets) {
     const d = new Date(tw.created_at);
-    const key = halfYearKey(d);
+    const key = keyFn(d);
     if (!map.has(key)) map.set(key, []);
     map.get(key).push(tw);
   }
-  return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  return {
+    windows: [...map.entries()].sort((a, b) => a[0].localeCompare(b[0])),
+    windowLabel: useQuarter ? "quarter" : "half-year",
+  };
 }
 
 function chunk(arr, size) {
@@ -95,10 +132,40 @@ function overallScoreWeighted(scores) {
   return den ? num / den : 0;
 }
 
+function topicCoverage(tweets) {
+  const hits = Object.fromEntries(TOPICS.map((t) => [t, 0]));
+  for (const t of tweets) {
+    const txt = String(t?.tweet_text || "").toLowerCase();
+    for (const topic of TOPICS) {
+      const kws = TOPIC_KEYWORDS[topic] || [];
+      for (const kw of kws) {
+        if (txt.includes(kw)) {
+          hits[topic] += 1;
+          break;
+        }
+      }
+    }
+  }
+  const coveredTopics = TOPICS.filter((topic) => hits[topic] >= MIN_TOPIC_HITS_PER_TOPIC);
+  return { hits, coveredTopics };
+}
+
 export async function runClassifierAgent(scraperResult, emit) {
   emit({ stage: "classifier", message: "Classifying stances…", progress: 0.28 });
   const { handle, tweets } = scraperResult;
-  const windows = groupByWindow(tweets);
+  const { coveredTopics, hits } = topicCoverage(tweets);
+  if (coveredTopics.length < MIN_TOPIC_COVERAGE_TOPICS) {
+    emit({
+      stage: "classifier",
+      message:
+        `Limited topic coverage (${coveredTopics.length}/${TOPICS.length} topics hit threshold); ` +
+        "continuing analysis with available corpus.",
+      detail: `Topic hits: ${JSON.stringify(hits)}`,
+      progress: 0.29,
+    });
+  }
+  const grouped = groupByWindow(tweets);
+  const windows = grouped.windows;
   const timeline = [];
 
   for (const [period, tws] of windows) {
@@ -126,7 +193,7 @@ export async function runClassifierAgent(scraperResult, emit) {
 
   emit({
     stage: "classifier",
-    message: `Classifying stances… done (${timeline.length} half-year windows).`,
+    message: `Classifying stances… done (${timeline.length} ${grouped.windowLabel} windows).`,
     progress: 0.52,
     done: true,
   });

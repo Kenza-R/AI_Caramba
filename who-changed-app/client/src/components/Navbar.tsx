@@ -8,10 +8,10 @@ const Navbar = () => {
       animate={{ y: 0, opacity: 1 }}
       className="fixed top-0 left-0 right-0 z-50 frosted-glass border-b border-primary/10"
     >
-      <div className="container mx-auto px-6 py-3 flex items-start justify-start">
+      <div className="container mx-auto px-6 py-2 flex items-start justify-start">
         <div className="flex flex-col items-start gap-1">
           <Link to="/" className="flex items-center gap-2 leading-none">
-            <span className="font-mono text-5xl font-semibold text-primary glow-cyan-text tracking-wider">
+            <span className="font-mono text-3xl md:text-4xl font-semibold text-primary glow-cyan-text tracking-wider">
               ΨSHIFT
             </span>
           </Link>

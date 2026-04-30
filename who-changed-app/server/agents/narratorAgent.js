@@ -22,7 +22,7 @@ export async function runNarratorAgent(contextResult, emit) {
   if (!contextResult.timeline?.length) {
     const out = {
       full_summary:
-        "Not enough timeline data to classify windows. Try again with a handle that returns more posts, or enable USE_MOCK_DATA for a demo run.",
+        "Not enough timeline data to classify windows. Try again with a handle that returns more posts.",
       most_significant_shift: "—",
       current_spectrum_estimate: 0,
       spectrum_three_years_ago: 0,

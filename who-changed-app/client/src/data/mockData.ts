@@ -20,7 +20,6 @@ export interface Figure {
   synthesis: string;
   /** False when shown on home from featured seed but no cached analysis yet */
   analysisReady?: boolean;
-  demoMode?: boolean;
   corpusTweetCount?: number | null;
   evidenceTweets?: EvidenceTweet[];
 }
@@ -30,6 +29,7 @@ export interface TopicStance {
   icon: string;
   stance: string;
   score: number;
+  previousScore?: number;
   trend: "right" | "left" | "stable";
 }
 
@@ -52,6 +52,25 @@ export interface EvidenceTweet {
   likes: number;
   retweets: number;
   url?: string | null;
+}
+
+export interface ProfileSearchOption {
+  id: string;
+  platform: "x" | "truth" | "manual";
+  handle: string;
+  displayName: string;
+  avatarUrl: string;
+  bio: string;
+  relevanceScore: number;
+}
+
+export interface ScrapeExportResult {
+  ok: boolean;
+  handle: string;
+  tweet_count: number;
+  date_range: { start: string | null; end: string | null };
+  download_url: string;
+  events?: Array<{ stage?: string; message?: string; progress?: number }>;
 }
 
 const topicIcon: Record<string, string> = {
@@ -124,6 +143,7 @@ function mapDashboardToFigure(d: any): Figure {
       icon: topicIcon[topic] || "•",
       stance: String(it.current_stance || "No stance summary available."),
       score,
+      previousScore: prev,
       trend: trendFromDelta(score - prev),
     };
   });
@@ -162,7 +182,6 @@ function mapDashboardToFigure(d: any): Figure {
     shiftEvents,
     synthesis: String(d?.narrative?.full_summary || "No synthesis available."),
     analysisReady: true,
-    demoMode: Boolean(d?.meta?.demo_mode),
     corpusTweetCount: d?.meta?.corpus_tweet_count ?? null,
     evidenceTweets: (Array.isArray(d?.sampleTweets) ? d.sampleTweets : []).map((t: any, i: number) => ({
       id: String(t?.id || `evidence-${i}`),
@@ -212,7 +231,6 @@ export async function fetchFeaturedFigures(): Promise<Figure[]> {
       shiftEvents: [],
       synthesis: String(f.blurb || ""),
       analysisReady: ready,
-      demoMode: Boolean(f.demo_mode),
       corpusTweetCount: f.corpus_tweet_count ?? null,
       evidenceTweets: [],
     };
@@ -230,8 +248,6 @@ export async function fetchFigureById(id: string): Promise<Figure | null> {
     throw new Error(explainApiNetworkError(e));
   }
   if (r.status === 404) return null;
-  // API is auto-refreshing an old demo snapshot in background.
-  // Treat as cache-miss so Dossier can trigger analyze/reload flow.
   if (r.status === 409) return null;
   if (!r.ok) throw new Error("Failed to load figure dossier");
   const data = await r.json();
@@ -246,12 +262,66 @@ export async function analyzeHandle(
   handle: string,
   onEvent: (ev: any) => void,
 ): Promise<void> {
+  return analyzeSelection(
+    {
+      id: `manual:${handle.replace(/^@/, "").trim().toLowerCase()}`,
+      platform: "manual",
+      handle: handle.replace(/^@/, "").trim().toLowerCase(),
+      displayName: handle,
+      avatarUrl: "",
+      bio: "",
+      relevanceScore: 1,
+    },
+    onEvent,
+  );
+}
+
+export async function searchProfiles(query: string): Promise<ProfileSearchOption[]> {
+  const q = String(query || "").trim();
+  if (!q) return [];
+  let r: Response;
+  try {
+    r = await fetch(apiUrl(`/api/profile-search?q=${encodeURIComponent(q)}&limit=8`));
+  } catch (e) {
+    throw new Error(explainApiNetworkError(e));
+  }
+  if (!r.ok) throw new Error("Failed to search profiles");
+  const data = await r.json();
+  const rows = Array.isArray(data?.options) ? data.options : [];
+  return rows
+    .map((x: any) => ({
+      id: String(x?.id || ""),
+      platform: (x?.platform === "truth" || x?.platform === "manual" ? x.platform : "x") as
+        | "x"
+        | "truth"
+        | "manual",
+      handle: String(x?.handle || "").replace(/^@/, "").toLowerCase(),
+      displayName: String(x?.displayName || x?.handle || ""),
+      avatarUrl: String(x?.avatarUrl || ""),
+      bio: String(x?.bio || ""),
+      relevanceScore: Number(x?.relevanceScore || 0),
+    }))
+    .filter((x: ProfileSearchOption) => Boolean(x.handle));
+}
+
+export async function analyzeSelection(
+  selection: Pick<ProfileSearchOption, "id" | "platform" | "handle">,
+  onEvent: (ev: any) => void,
+): Promise<void> {
   let res: Response;
   try {
     res = await fetch(apiUrl("/api/analyze"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ handle: handle.replace(/^@/, "").trim() }),
+      body: JSON.stringify({
+        handle: selection.handle.replace(/^@/, "").trim(),
+        selection: {
+          id: selection.id,
+          platform: selection.platform,
+          handle: selection.handle.replace(/^@/, "").trim(),
+        },
+        allowXCapture: false,
+      }),
     });
   } catch (e) {
     throw new Error(explainApiNetworkError(e));
@@ -264,6 +334,7 @@ export async function analyzeHandle(
   const reader = res.body.getReader();
   const dec = new TextDecoder();
   let buf = "";
+  let sseError: string | null = null;
   try {
     while (true) {
       const { done, value } = await reader.read();
@@ -276,6 +347,9 @@ export async function analyzeHandle(
         if (!line) continue;
         try {
           const ev = JSON.parse(line.slice(6));
+          if (ev?.stage === "error") {
+            sseError = String(ev?.message || "Analysis failed.");
+          }
           if (ev.dashboard) mapDashboardToFigure(ev.dashboard);
           onEvent(ev);
         } catch {
@@ -286,4 +360,36 @@ export async function analyzeHandle(
   } catch (e) {
     throw new Error(explainApiNetworkError(e));
   }
+  if (sseError) {
+    throw new Error(sseError);
+  }
+}
+
+export async function scrapeExportSelection(
+  selection: Pick<ProfileSearchOption, "id" | "platform" | "handle">,
+): Promise<ScrapeExportResult> {
+  let res: Response;
+  try {
+    res = await fetch(apiUrl("/api/scrape-export"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        handle: selection.handle.replace(/^@/, "").trim(),
+        selection: {
+          id: selection.id,
+          platform: selection.platform,
+          handle: selection.handle.replace(/^@/, "").trim(),
+        },
+        allowXCapture: false,
+        forceRescrape: true,
+      }),
+    });
+  } catch (e) {
+    throw new Error(explainApiNetworkError(e));
+  }
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(t || "Scrape/export request failed");
+  }
+  return res.json();
 }
