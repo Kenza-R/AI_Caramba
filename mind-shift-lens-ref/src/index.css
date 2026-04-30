@@ -1,0 +1,163 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 50% 4%;
+    --foreground: 210 20% 92%;
+
+    --card: 220 45% 7%;
+    --card-foreground: 210 20% 92%;
+
+    --popover: 220 45% 7%;
+    --popover-foreground: 210 20% 92%;
+
+    --primary: 185 100% 50%;
+    --primary-foreground: 220 50% 4%;
+
+    --secondary: 160 100% 50%;
+    --secondary-foreground: 220 50% 4%;
+
+    --muted: 220 30% 12%;
+    --muted-foreground: 215 15% 55%;
+
+    --accent: 37 90% 55%;
+    --accent-foreground: 220 50% 4%;
+
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 210 20% 95%;
+
+    --border: 185 100% 50%;
+    --input: 220 30% 15%;
+    --ring: 185 100% 50%;
+
+    --radius: 0.25rem;
+
+    --sidebar-background: 220 45% 5%;
+    --sidebar-foreground: 210 20% 85%;
+    --sidebar-primary: 185 100% 50%;
+    --sidebar-primary-foreground: 220 50% 4%;
+    --sidebar-accent: 220 30% 12%;
+    --sidebar-accent-foreground: 210 20% 85%;
+    --sidebar-border: 220 30% 15%;
+    --sidebar-ring: 185 100% 50%;
+
+    /* Custom tokens */
+    --cyan: 185 100% 50%;
+    --green: 160 100% 50%;
+    --amber: 37 90% 55%;
+    --navy: 220 50% 4%;
+    --navy-light: 220 45% 7%;
+    --glow-cyan: 0 0 12px hsla(185, 100%, 50%, 0.15);
+    --glow-cyan-strong: 0 0 20px hsla(185, 100%, 50%, 0.3);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border/20;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Scanline overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      hsla(0, 0%, 0%, 0.03) 2px,
+      hsla(0, 0%, 0%, 0.03) 4px
+    );
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(220, 50%, 4%);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsla(185, 100%, 50%, 0.3);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsla(185, 100%, 50%, 0.5);
+  }
+}
+
+@layer components {
+  .font-mono {
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .font-display {
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  .glow-cyan {
+    box-shadow: 0 0 12px hsla(185, 100%, 50%, 0.15);
+  }
+  .glow-cyan-strong {
+    box-shadow: 0 0 20px hsla(185, 100%, 50%, 0.3);
+  }
+  .glow-cyan-text {
+    text-shadow: 0 0 10px hsla(185, 100%, 50%, 0.4);
+  }
+
+  .border-glow {
+    border: 1px solid hsla(185, 100%, 50%, 0.2);
+  }
+  .border-glow-hover:hover {
+    border-color: hsla(185, 100%, 50%, 0.4);
+    box-shadow: 0 0 20px hsla(185, 100%, 50%, 0.2);
+  }
+
+  .grid-bg {
+    background-image:
+      linear-gradient(hsla(185, 100%, 50%, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, hsla(185, 100%, 50%, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .frosted-glass {
+    background: hsla(220, 45%, 7%, 0.85);
+    backdrop-filter: blur(20px);
+  }
+
+  .text-gradient-cyan {
+    background: linear-gradient(135deg, hsl(185, 100%, 50%), hsl(160, 100%, 50%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .sweep-animation {
+    position: relative;
+    overflow: hidden;
+  }
+  .sweep-animation::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, hsla(185, 100%, 50%, 0.1), transparent);
+    transition: left 0.5s ease;
+  }
+  .sweep-animation:hover::after {
+    left: 100%;
+  }
+}

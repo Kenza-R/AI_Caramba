@@ -15,3 +15,14 @@ who-changed-app/server/data/
 
 # Local env secrets
 who-changed-app/server/.env
+
+# Backend
+backend/venv/
+backend/.env
+backend/accounts.db
+backend/__pycache__/
+backend/*.pyc
+
+# Frontend
+mind-shift-lens-ref/node_modules/
+mind-shift-lens-ref/dist/
