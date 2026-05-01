@@ -1,0 +1,105 @@
+
+> who-changed-server@1.0.0 analyze:csv
+> node tools/analyzeCsvParallel.js ../../../TwExportly_hasanthehun_tweets_2026_04_30.csv hasanthehun
+
+[classifier] Classifying stances…
+[classifier] Window 2021-H1: batch 1/1…
+[classifier] Window 2026-H1: batch 1/20…
+[classifier] Window 2026-H1: batch 2/20…
+[classifier] Window 2026-H1: batch 3/20…
+[classifier] Window 2026-H1: batch 4/20…
+[classifier] Window 2026-H1: batch 5/20…
+[classifier] Window 2026-H1: batch 6/20…
+[classifier] Window 2026-H1: batch 7/20…
+[classifier] Window 2026-H1: batch 8/20…
+[classifier] Window 2026-H1: batch 9/20…
+[classifier] Window 2026-H1: batch 10/20…
+[classifier] Window 2026-H1: batch 11/20…
+[classifier] Window 2026-H1: batch 12/20…
+[classifier] Window 2026-H1: batch 13/20…
+[classifier] Window 2026-H1: batch 14/20…
+[classifier] Window 2026-H1: batch 15/20…
+[classifier] Window 2026-H1: batch 16/20…
+[classifier] Window 2026-H1: batch 17/20…
+[classifier] Window 2026-H1: batch 18/20…
+[classifier] Window 2026-H1: batch 19/20…
+[classifier] Window 2026-H1: batch 20/20…
+[classifier] Classifying stances… done (2 half-year windows).
+[shiftDetector] Detecting ideological shifts…
+[shiftDetector] Detecting ideological shifts… flagged 0 anomaly event(s).
+[context] Matching to news events…
+[context] Matching to news events… complete.
+[narrator] Writing final analysis…
+[narrator] Writing final analysis… complete.
+
+=== ANALYSIS RESULT (JSON) ===
+{
+  "source_file": "/Users/kmr/AI_Caramba/TwExportly_hasanthehun_tweets_2026_04_30.csv",
+  "handle": "hasanthehun",
+  "corpus_tweet_count": 999,
+  "corpus_start": "2021-05-15T17:04:36.000Z",
+  "corpus_end": "2026-04-30T22:53:39.000Z",
+  "windows": 2,
+  "baseline_usage_by_topic": {
+    "immigration": {
+      "baseline_period": "2026-H1",
+      "initial_tweets_used": 999,
+      "topic_hit_tweets_used": 10,
+      "cumulative_topic_hits": 10
+    },
+    "economy": {
+      "baseline_period": "2026-H1",
+      "initial_tweets_used": 999,
+      "topic_hit_tweets_used": 37,
+      "cumulative_topic_hits": 37
+    },
+    "climate": {
+      "baseline_period": "2026-H1",
+      "initial_tweets_used": 999,
+      "topic_hit_tweets_used": 25,
+      "cumulative_topic_hits": 25
+    },
+    "healthcare": {
+      "baseline_period": "2026-H1",
+      "initial_tweets_used": 999,
+      "topic_hit_tweets_used": 24,
+      "cumulative_topic_hits": 24
+    },
+    "foreign_policy": {
+      "baseline_period": "2026-H1",
+      "initial_tweets_used": 999,
+      "topic_hit_tweets_used": 319,
+      "cumulative_topic_hits": 319
+    },
+    "social_issues": {
+      "baseline_period": "2026-H1",
+      "initial_tweets_used": 999,
+      "topic_hit_tweets_used": 39,
+      "cumulative_topic_hits": 39
+    },
+    "media_free_speech": {
+      "baseline_period": "2026-H1",
+      "initial_tweets_used": 999,
+      "topic_hit_tweets_used": 84,
+      "cumulative_topic_hits": 84
+    }
+  },
+  "shift_count": 0,
+  "top_shifts": [],
+  "spectrum": {
+    "start": -6.8,
+    "current": -6.458
+  },
+  "narrative": {
+    "full_summary": "Based on available data from 2021 and 2026, this account demonstrates consistent left-wing ideological positioning across the analyzed timeframe. The early 2021 data point shows strongly progressive views, particularly regarding foreign policy with harsh criticism of Israel, which appears to be a defining ideological anchor.\n\nBy 2026, the account's positions have remained largely stable within the progressive spectrum, though with some notable variations. The foreign policy stance has intensified slightly, becoming even more critical of U.S. interventionism and maintaining strong anti-Israel/pro-Palestine positions. Economic views have also shifted slightly leftward, suggesting increased support for socialist policies and criticism of centrist Democratic positions.\n\nInterestingly, climate positions appear to have moderated somewhat from the earlier period, moving closer to center-left from a more strongly progressive stance. This represents the most significant ideological movement observed, though the account maintains overall progressive alignment across healthcare, social issues, and media/free speech topics. The high volume of foreign policy content (319 hits) suggests this remains the primary ideological focus.\n\nThe analysis is limited by sparse early data and the inherent uncertainty in interpreting public statements as definitive ideological positions. The account appears to maintain anti-establishment views that criticize both major parties from a leftist perspective.",
+    "most_significant_shift": "Climate change positions moderated from strongly progressive (-6) to more center-left (-2.7) between 2021 and 2026.",
+    "current_spectrum_estimate": -6.5,
+    "spectrum_three_years_ago": -6.8,
+    "surprises_or_inconsistencies": "The moderation on climate issues is somewhat unexpected given the leftward movement on economic policy and intensification of foreign policy positions. This creates an inconsistent pattern where most issues trend more progressive while environmental views move toward the center, which is atypical for coherent ideological evolution.",
+    "overall_confidence": 0.4,
+    "disclaimer": "This analysis interprets public statements only and cannot determine actual beliefs, motivations, or future positions. Ideological scoring is subjective and based on limited data points."
+  },
+  "saved_to_dashboard": true
+}
+
+Saved analysis for @hasanthehun to app database.

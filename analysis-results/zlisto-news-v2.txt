@@ -1,0 +1,161 @@
+
+> who-changed-server@1.0.0 analyze:csv
+> node tools/analyzeCsvParallel.js ../../../TwExportly_zlisto_tweets_2026_05_01.csv zlisto
+
+[classifier] Classifying stances…
+[classifier] Window 2008-H1: batch 1/1…
+[classifier] Window 2013-H2: batch 1/1…
+[classifier] Window 2015-H2: batch 1/1…
+[classifier] Window 2019-H2: batch 1/3…
+[classifier] Window 2019-H2: batch 2/3…
+[classifier] Window 2019-H2: batch 3/3…
+[classifier] Window 2020-H1: batch 1/12…
+[classifier] Window 2020-H1: batch 2/12…
+[classifier] Window 2020-H1: batch 3/12…
+[classifier] Window 2020-H1: batch 4/12…
+[classifier] Window 2020-H1: batch 5/12…
+[classifier] Window 2020-H1: batch 6/12…
+[classifier] Window 2020-H1: batch 7/12…
+[classifier] Window 2020-H1: batch 8/12…
+[classifier] Window 2020-H1: batch 9/12…
+[classifier] Window 2020-H1: batch 10/12…
+[classifier] Window 2020-H1: batch 11/12…
+[classifier] Window 2020-H1: batch 12/12…
+[classifier] Window 2020-H2: batch 1/2…
+[classifier] Window 2020-H2: batch 2/2…
+[classifier] Window 2021-H1: batch 1/3…
+[classifier] Window 2021-H1: batch 2/3…
+[classifier] Window 2021-H1: batch 3/3…
+[classifier] Window 2021-H2: batch 1/1…
+[classifier] Window 2022-H1: batch 1/1…
+[classifier] Window 2023-H1: batch 1/1…
+[classifier] Window 2024-H1: batch 1/1…
+[classifier] Window 2024-H2: batch 1/1…
+[classifier] Window 2025-H1: batch 1/1…
+[classifier] Window 2025-H2: batch 1/1…
+[classifier] Window 2026-H1: batch 1/1…
+[classifier] Classifying stances… done (15 half-year windows).
+[shiftDetector] Detecting ideological shifts…
+[shiftDetector] Detecting ideological shifts… flagged 5 anomaly event(s).
+[context] Matching to news events…
+[context] Matching to news events… (1/5)
+[context] Matching to news events… (2/5)
+[context] Matching to news events… (3/5)
+[context] Matching to news events… (4/5)
+[context] Matching to news events… (5/5)
+[context] Matching to news events… complete.
+[narrator] Writing final analysis…
+[narrator] Writing final analysis… complete.
+
+=== ANALYSIS RESULT (JSON) ===
+{
+  "source_file": "/Users/kmr/AI_Caramba/TwExportly_zlisto_tweets_2026_05_01.csv",
+  "handle": "zlisto",
+  "corpus_tweet_count": 1008,
+  "corpus_start": "2008-01-03T23:16:32.000Z",
+  "corpus_end": "2026-04-19T18:03:51.000Z",
+  "windows": 15,
+  "baseline_usage_by_topic": {
+    "immigration": {
+      "baseline_period": null,
+      "initial_tweets_used": 0,
+      "topic_hit_tweets_used": 0,
+      "cumulative_topic_hits": 0
+    },
+    "economy": {
+      "baseline_period": "2020-H1",
+      "initial_tweets_used": 750,
+      "topic_hit_tweets_used": 13,
+      "cumulative_topic_hits": 13
+    },
+    "climate": {
+      "baseline_period": "2020-H1",
+      "initial_tweets_used": 750,
+      "topic_hit_tweets_used": 5,
+      "cumulative_topic_hits": 5
+    },
+    "healthcare": {
+      "baseline_period": "2020-H1",
+      "initial_tweets_used": 750,
+      "topic_hit_tweets_used": 13,
+      "cumulative_topic_hits": 13
+    },
+    "foreign_policy": {
+      "baseline_period": "2019-H2",
+      "initial_tweets_used": 153,
+      "topic_hit_tweets_used": 21,
+      "cumulative_topic_hits": 21
+    },
+    "social_issues": {
+      "baseline_period": "2020-H1",
+      "initial_tweets_used": 750,
+      "topic_hit_tweets_used": 8,
+      "cumulative_topic_hits": 8
+    },
+    "media_free_speech": {
+      "baseline_period": "2019-H2",
+      "initial_tweets_used": 153,
+      "topic_hit_tweets_used": 8,
+      "cumulative_topic_hits": 8
+    }
+  },
+  "shift_count": 5,
+  "top_shifts": [
+    {
+      "topic": "__overall__",
+      "direction": "left",
+      "magnitude": 0.9383333333333334,
+      "period_before": "2008-H1",
+      "period_after": "2020-H1",
+      "anomaly_flag": true
+    },
+    {
+      "topic": "economy",
+      "direction": "right",
+      "magnitude": 6.083333333333333,
+      "period_before": "2020-H1",
+      "period_after": "2020-H2",
+      "anomaly_flag": true
+    },
+    {
+      "topic": "foreign_policy",
+      "direction": "right",
+      "magnitude": 1,
+      "period_before": "2019-H2",
+      "period_after": "2020-H2",
+      "anomaly_flag": true
+    },
+    {
+      "topic": "__overall__",
+      "direction": "right",
+      "magnitude": 0.6099999999999999,
+      "period_before": "2008-H1",
+      "period_after": "2020-H2",
+      "anomaly_flag": true
+    },
+    {
+      "topic": "media_free_speech",
+      "direction": "left",
+      "magnitude": 3.3333333333333335,
+      "period_before": "2019-H2",
+      "period_after": "2024-H2",
+      "anomaly_flag": true
+    }
+  ],
+  "spectrum": {
+    "start": 0,
+    "current": -0.26000000000000006
+  },
+  "narrative": {
+    "full_summary": "The user 'zlisto' demonstrates a complex ideological evolution characterized by limited early political engagement transitioning to more defined positions around 2019-2020, followed by a gradual retreat from explicit political commentary. In the early periods (2008-2015), political content was virtually non-existent, consisting mainly of non-political tweets about mathematics, taxes, and general commentary.\n\nThe most significant political engagement occurred during 2019-2020, revealing an anti-establishment orientation that defied traditional left-right categorization. The user showed simultaneous support for Bernie Sanders and progressive healthcare positions while defending Trump on certain foreign policy issues. This period featured strong skepticism toward mainstream media, intelligence agencies, and establishment Democratic figures, combined with support for cryptocurrency and free-market economic principles.\n\nA notable rightward shift occurred in late 2020, particularly on economic issues, as the user's focus shifted heavily toward cryptocurrency enthusiasm and free-market positions. This represented a departure from earlier Sanders support toward more libertarian economic views. The user maintained anti-establishment sentiment while becoming less explicitly political in their commentary.\n\nFrom 2021 onwards, political content became increasingly sparse, with most tweets focusing on gaming, technology, and personal interests. Recent periods show only minimal political engagement, with slight left-leaning tendencies on media issues, including support for liberal media figures and criticism of pre-Musk Twitter content moderation practices.",
+    "most_significant_shift": "The dramatic rightward economic shift in late 2020, moving from Bernie Sanders support (score -1.58) to strong pro-cryptocurrency free-market positions (score 4.5), representing a 6.08-point change.",
+    "current_spectrum_estimate": -0.3,
+    "spectrum_three_years_ago": 0.02,
+    "surprises_or_inconsistencies": "The user's political profile is surprisingly inconsistent with traditional ideological frameworks, simultaneously supporting Bernie Sanders while defending Trump on foreign policy, and expressing both anti-establishment sentiment and pro-cryptocurrency libertarian views. The dramatic economic position reversal within six months (2020) appears disconnected from other stable political views, suggesting issue-specific rather than coherent ideological evolution.",
+    "overall_confidence": 0.4,
+    "disclaimer": "This analysis interprets public social media statements and should not be considered definitive of personal beliefs or future positions. Political positioning estimates are based on limited available content and may not reflect the full complexity of individual political views."
+  },
+  "saved_to_dashboard": true
+}
+
+Saved analysis for @zlisto to app database.

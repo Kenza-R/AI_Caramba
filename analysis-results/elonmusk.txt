@@ -1,0 +1,117 @@
+
+> who-changed-server@1.0.0 analyze:csv
+> node tools/analyzeCsvParallel.js ../../../TwExportly_elonmusk_tweets_2026_05_01.csv elonmusk
+
+[classifier] Classifying stances…
+[classifier] Window 2024-Q3: batch 1/1…
+[classifier] Window 2025-Q4: batch 1/1…
+[classifier] Window 2026-Q1: batch 1/1…
+[classifier] Window 2026-Q2: batch 1/20…
+[classifier] Window 2026-Q2: batch 2/20…
+[classifier] Window 2026-Q2: batch 3/20…
+[classifier] Window 2026-Q2: batch 4/20…
+[classifier] Window 2026-Q2: batch 5/20…
+[classifier] Window 2026-Q2: batch 6/20…
+[classifier] Window 2026-Q2: batch 7/20…
+[classifier] Window 2026-Q2: batch 8/20…
+[classifier] Window 2026-Q2: batch 9/20…
+[classifier] Window 2026-Q2: batch 10/20…
+[classifier] Window 2026-Q2: batch 11/20…
+[classifier] Window 2026-Q2: batch 12/20…
+[classifier] Window 2026-Q2: batch 13/20…
+[classifier] Window 2026-Q2: batch 14/20…
+[classifier] Window 2026-Q2: batch 15/20…
+[classifier] Window 2026-Q2: batch 16/20…
+[classifier] Window 2026-Q2: batch 17/20…
+[classifier] Window 2026-Q2: batch 18/20…
+[classifier] Window 2026-Q2: batch 19/20…
+[classifier] Window 2026-Q2: batch 20/20…
+[classifier] Classifying stances… done (4 quarter windows).
+[shiftDetector] Detecting ideological shifts…
+[shiftDetector] Detecting ideological shifts… flagged 1 anomaly event(s).
+[context] Matching to news events…
+[context] Matching to news events… (1/1)
+[context] Matching to news events… complete.
+[narrator] Writing final analysis…
+[narrator] Writing final analysis… complete.
+
+=== ANALYSIS RESULT (JSON) ===
+{
+  "source_file": "/Users/kmr/AI_Caramba/TwExportly_elonmusk_tweets_2026_05_01.csv",
+  "handle": "elonmusk",
+  "corpus_tweet_count": 1000,
+  "corpus_start": "2024-09-29T20:32:43.000Z",
+  "corpus_end": "2026-04-30T23:20:06.000Z",
+  "windows": 4,
+  "baseline_usage_by_topic": {
+    "immigration": {
+      "baseline_period": "2026-Q2",
+      "initial_tweets_used": 1000,
+      "topic_hit_tweets_used": 8,
+      "cumulative_topic_hits": 8
+    },
+    "economy": {
+      "baseline_period": "2026-Q2",
+      "initial_tweets_used": 1000,
+      "topic_hit_tweets_used": 40,
+      "cumulative_topic_hits": 40
+    },
+    "climate": {
+      "baseline_period": "2026-Q2",
+      "initial_tweets_used": 1000,
+      "topic_hit_tweets_used": 11,
+      "cumulative_topic_hits": 11
+    },
+    "healthcare": {
+      "baseline_period": "2026-Q2",
+      "initial_tweets_used": 1000,
+      "topic_hit_tweets_used": 11,
+      "cumulative_topic_hits": 11
+    },
+    "foreign_policy": {
+      "baseline_period": "2026-Q2",
+      "initial_tweets_used": 1000,
+      "topic_hit_tweets_used": 42,
+      "cumulative_topic_hits": 42
+    },
+    "social_issues": {
+      "baseline_period": "2026-Q2",
+      "initial_tweets_used": 1000,
+      "topic_hit_tweets_used": 36,
+      "cumulative_topic_hits": 36
+    },
+    "media_free_speech": {
+      "baseline_period": "2026-Q2",
+      "initial_tweets_used": 1000,
+      "topic_hit_tweets_used": 46,
+      "cumulative_topic_hits": 46
+    }
+  },
+  "shift_count": 1,
+  "top_shifts": [
+    {
+      "topic": "__overall__",
+      "direction": "right",
+      "magnitude": 3.3420000000000005,
+      "period_before": "2024-Q3",
+      "period_after": "2026-Q2",
+      "anomaly_flag": true
+    }
+  ],
+  "spectrum": {
+    "start": 0.28,
+    "current": 3.6220000000000003
+  },
+  "narrative": {
+    "full_summary": "Based on the limited data available, Elon Musk's public statements show a notable rightward ideological shift from 2024 to 2026. Early periods (2024-Q3 through 2026-Q1) contained minimal political content, with only occasional conservative-leaning social commentary scoring slightly right of center (0.28 overall). The data from these early periods is extremely limited, consisting mainly of religious content, philosophical commentary, and broken links.\n\nA dramatic shift occurred in 2026-Q2, where Musk's public statements moved significantly rightward across multiple dimensions. His positions became notably conservative on social issues (5.75), particularly opposing transgender rights in sports and medical treatments. He adopted strong right-leaning stances on immigration (3.95), characterizing certain Biden administration actions as 'war crimes,' and expressed anti-woke sentiment regarding social justice initiatives in media. He also demonstrated strong support for unrestricted free speech (5.25) and pro-business economic positions (4.5).\n\nThis shift coincided with increased media coverage of immigration controversies and cultural debates around progressive policies. His public opposition to what he termed anti-white racism and support for traditional gender roles aligned with conservative media narratives during this period. However, the analysis is severely limited by sparse data in earlier periods and the inherent uncertainty of interpreting public statements as genuine ideological positions versus strategic communication.",
+    "most_significant_shift": "A dramatic rightward movement in 2026-Q2 across social issues, immigration, and free speech positions, representing a 3.34-point shift from the baseline period.",
+    "current_spectrum_estimate": 4,
+    "spectrum_three_years_ago": 0,
+    "surprises_or_inconsistencies": "The analysis reveals significant data quality issues, with extremely limited political content in early periods making trend analysis unreliable. The sudden appearance of substantial political commentary in 2026-Q2 after periods of minimal data suggests either a genuine shift in communication strategy or data collection inconsistencies. The moderate position on climate issues (1.1) stands somewhat inconsistent with other conservative positions, though this could reflect his business interests in sustainable technology.",
+    "overall_confidence": 0.3,
+    "disclaimer": "This analysis interprets public statements and social media activity only. It does not represent actual private beliefs or predict future positions. Political positioning may reflect strategic communication rather than genuine ideology."
+  },
+  "saved_to_dashboard": true
+}
+
+Saved analysis for @elonmusk to app database.

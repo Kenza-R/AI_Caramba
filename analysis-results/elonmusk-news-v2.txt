@@ -1,0 +1,117 @@
+
+> who-changed-server@1.0.0 analyze:csv
+> node tools/analyzeCsvParallel.js ../../../TwExportly_elonmusk_tweets_2026_05_01.csv elonmusk
+
+[classifier] Classifying stances…
+[classifier] Window 2024-Q3: batch 1/1…
+[classifier] Window 2025-Q4: batch 1/1…
+[classifier] Window 2026-Q1: batch 1/1…
+[classifier] Window 2026-Q2: batch 1/20…
+[classifier] Window 2026-Q2: batch 2/20…
+[classifier] Window 2026-Q2: batch 3/20…
+[classifier] Window 2026-Q2: batch 4/20…
+[classifier] Window 2026-Q2: batch 5/20…
+[classifier] Window 2026-Q2: batch 6/20…
+[classifier] Window 2026-Q2: batch 7/20…
+[classifier] Window 2026-Q2: batch 8/20…
+[classifier] Window 2026-Q2: batch 9/20…
+[classifier] Window 2026-Q2: batch 10/20…
+[classifier] Window 2026-Q2: batch 11/20…
+[classifier] Window 2026-Q2: batch 12/20…
+[classifier] Window 2026-Q2: batch 13/20…
+[classifier] Window 2026-Q2: batch 14/20…
+[classifier] Window 2026-Q2: batch 15/20…
+[classifier] Window 2026-Q2: batch 16/20…
+[classifier] Window 2026-Q2: batch 17/20…
+[classifier] Window 2026-Q2: batch 18/20…
+[classifier] Window 2026-Q2: batch 19/20…
+[classifier] Window 2026-Q2: batch 20/20…
+[classifier] Classifying stances… done (4 quarter windows).
+[shiftDetector] Detecting ideological shifts…
+[shiftDetector] Detecting ideological shifts… flagged 1 anomaly event(s).
+[context] Matching to news events…
+[context] Matching to news events… (1/1)
+[context] Matching to news events… complete.
+[narrator] Writing final analysis…
+[narrator] Writing final analysis… complete.
+
+=== ANALYSIS RESULT (JSON) ===
+{
+  "source_file": "/Users/kmr/AI_Caramba/TwExportly_elonmusk_tweets_2026_05_01.csv",
+  "handle": "elonmusk",
+  "corpus_tweet_count": 1000,
+  "corpus_start": "2024-09-29T20:32:43.000Z",
+  "corpus_end": "2026-04-30T23:20:06.000Z",
+  "windows": 4,
+  "baseline_usage_by_topic": {
+    "immigration": {
+      "baseline_period": "2026-Q2",
+      "initial_tweets_used": 1000,
+      "topic_hit_tweets_used": 8,
+      "cumulative_topic_hits": 8
+    },
+    "economy": {
+      "baseline_period": "2026-Q2",
+      "initial_tweets_used": 1000,
+      "topic_hit_tweets_used": 40,
+      "cumulative_topic_hits": 40
+    },
+    "climate": {
+      "baseline_period": "2026-Q2",
+      "initial_tweets_used": 1000,
+      "topic_hit_tweets_used": 11,
+      "cumulative_topic_hits": 11
+    },
+    "healthcare": {
+      "baseline_period": "2026-Q2",
+      "initial_tweets_used": 1000,
+      "topic_hit_tweets_used": 11,
+      "cumulative_topic_hits": 11
+    },
+    "foreign_policy": {
+      "baseline_period": "2026-Q2",
+      "initial_tweets_used": 1000,
+      "topic_hit_tweets_used": 42,
+      "cumulative_topic_hits": 42
+    },
+    "social_issues": {
+      "baseline_period": "2026-Q2",
+      "initial_tweets_used": 1000,
+      "topic_hit_tweets_used": 36,
+      "cumulative_topic_hits": 36
+    },
+    "media_free_speech": {
+      "baseline_period": "2026-Q2",
+      "initial_tweets_used": 1000,
+      "topic_hit_tweets_used": 46,
+      "cumulative_topic_hits": 46
+    }
+  },
+  "shift_count": 1,
+  "top_shifts": [
+    {
+      "topic": "__overall__",
+      "direction": "right",
+      "magnitude": 3.309,
+      "period_before": "2024-Q3",
+      "period_after": "2026-Q2",
+      "anomaly_flag": true
+    }
+  ],
+  "spectrum": {
+    "start": 0.28,
+    "current": 3.589
+  },
+  "narrative": {
+    "full_summary": "The analysis reveals a significant rightward ideological shift for this figure over the examined period, though confidence is limited by sparse early data. During 2024-Q3 through early 2026, the available content showed minimal political positioning, with only slight conservative leanings on social issues evidenced by religious content and opposition to progressive ideologies like critical race theory.\n\nThe most dramatic change occurred in 2026-Q2, where comprehensive data became available showing pronounced conservative positions across multiple policy areas. The figure demonstrated strong anti-illegal immigration stances (calling certain Biden administration policies 'war crimes'), significant opposition to progressive social policies including transgender rights and race-based policies, and advocacy for unrestricted free speech. Economic and foreign policy positions also shifted rightward, though less dramatically than on cultural issues.\n\nThis rightward evolution coincided with broader international discourse about political polarization and civility in public dialogue. The shift appears most pronounced on social and cultural issues, with scores moving from neutral territory to strongly conservative positions. However, the dramatic nature of this change may partially reflect the availability of more comprehensive data in later periods rather than purely ideological evolution.\n\nThe pattern suggests a trajectory from relatively centrist positioning (when measurable) to distinctly right-leaning advocacy, particularly on immigration, social issues, and free speech topics. This aligns with broader trends in political polarization during this timeframe.",
+    "most_significant_shift": "The overall ideological position moved 3.3 points rightward between 2024-Q3 and 2026-Q2, driven primarily by increasingly conservative stances on social issues, immigration, and free speech.",
+    "current_spectrum_estimate": 4,
+    "spectrum_three_years_ago": 0,
+    "surprises_or_inconsistencies": "The dramatic shift magnitude may be inflated by data availability rather than pure ideological change, as early periods had extremely limited content for analysis. The consistency of conservative positions across diverse policy areas in 2026-Q2 suggests either a comprehensive worldview evolution or selective content sharing that emphasizes particular political themes.",
+    "overall_confidence": 0.6,
+    "disclaimer": "This analysis interprets public statements only and cannot determine private beliefs, motivations, or future positions. Political positioning may reflect strategic communication rather than personal ideology."
+  },
+  "saved_to_dashboard": true
+}
+
+Saved analysis for @elonmusk to app database.
