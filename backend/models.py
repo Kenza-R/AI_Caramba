@@ -16,7 +16,7 @@ class ShiftEvent(BaseModel):
     before: str
     fissure: str
     after: str
-    news: list[NewsItem]
+    news: list[NewsItem] = []
 
 
 class TopicStance(BaseModel):

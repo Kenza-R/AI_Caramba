@@ -1,6 +1,6 @@
 import os
 import asyncio
-import traceback
+from collections.abc import AsyncIterator, Callable
 from dotenv import load_dotenv
 import twscrape
 
@@ -20,8 +20,7 @@ async def _get_api() -> twscrape.API:
 
         # Clear stale rate-limit locks from previous sessions on startup
         try:
-            await api.pool.conn.execute("UPDATE accounts SET locks='{}'")
-            await api.pool.conn.commit()
+            await api.pool.reset_locks()
         except Exception:
             pass
 
@@ -29,23 +28,19 @@ async def _get_api() -> twscrape.API:
         password = os.getenv("TW_PASS_1", "")
         email = os.getenv("TW_EMAIL_1", "")
         email_password = os.getenv("TW_EMAIL_PASS_1", "")
-        cookies = os.getenv("TW_COOKIES_1", "")  # "auth_token=xxx; ct0=xxx"
+        cookies = os.getenv("TW_COOKIES_1", "")
 
         if not username:
             raise RuntimeError("TW_USER_1 not set in .env")
 
         try:
             if cookies:
-                # Cookie-based auth — bypasses Cloudflare login challenge
-                await api.pool.add_account(
-                    username, password, email, email_password,
-                    cookies=cookies,
-                )
+                await api.pool.add_account(username, password, email, email_password, cookies=cookies)
             else:
                 await api.pool.add_account(username, password, email, email_password)
                 await api.pool.login_all()
         except Exception:
-            pass  # already in pool from a previous run (twscrape persists to SQLite)
+            pass  # already in pool
 
         accounts = await api.pool.get_all()
         active = [a for a in accounts if a.active]
@@ -63,43 +58,19 @@ async def resolve_handle(query: str) -> str:
     return query.lstrip("@").strip()
 
 
-async def fetch_user_tweets(handle: str, limit: int = 3000) -> list[dict]:
+async def _clear_locks() -> None:
+    """Clear per-queue rate-limit locks so the account is immediately usable."""
     api = await _get_api()
-
     try:
-        user = await api.user_by_login(handle)
-    except Exception as e:
-        print(f"[scraper] user_by_login FAILED: {e}")
-        traceback.print_exc()
-        raise
-    if user is None:
-        raise ValueError(f"Twitter user @{handle} not found")
-
-    tweets: list[dict] = []
-    async for tweet in api.user_tweets(user.id, limit=limit):
-        tweets.append({
-            "id": str(tweet.id),
-            "date": tweet.date.isoformat(),
-            "text": tweet.rawContent,
-            "likes": tweet.likeCount or 0,
-            "retweets": tweet.retweetCount or 0,
-            "replies": tweet.replyCount or 0,
-            "views": tweet.viewCount or 0,
-            "is_retweet": tweet.retweetedTweet is not None,
-            "lang": tweet.lang or "en",
-        })
-
-    return tweets
+        await api.pool.reset_locks()
+    except Exception:
+        pass
 
 
 async def get_user_info(handle: str) -> dict:
+    await _clear_locks()
     api = await _get_api()
-    try:
-        user = await api.user_by_login(handle)
-    except Exception as e:
-        print(f"[scraper] get_user_info user_by_login FAILED: {e}")
-        traceback.print_exc()
-        raise
+    user = await api.user_by_login(handle)
     if user is None:
         raise ValueError(f"Twitter user @{handle} not found")
     return {
@@ -109,3 +80,51 @@ async def get_user_info(handle: str) -> dict:
         "followers": user.followersCount or 0,
         "tweet_count": user.statusesCount or 0,
     }
+
+
+async def fetch_user_tweets(
+    handle: str,
+    limit: int = 3000,
+    on_progress: Callable[[int], None] | None = None,
+) -> list[dict]:
+    """
+    Fetch up to `limit` tweets from a user's timeline.
+
+    on_progress(n) is called each time a new tweet is fetched, so the
+    caller can update a live progress counter.
+
+    If rate-limited mid-scrape, returns whatever was collected so far
+    (minimum MIN_TWEETS_FOR_ANALYSIS) rather than failing the whole job.
+    """
+    MIN_TWEETS_FOR_ANALYSIS = 50
+
+    api = await _get_api()
+
+    user = await api.user_by_login(handle)
+    if user is None:
+        raise ValueError(f"Twitter user @{handle} not found")
+
+    tweets: list[dict] = []
+    try:
+        async for tweet in api.user_tweets(user.id, limit=limit):
+            tweets.append({
+                "id": str(tweet.id),
+                "date": tweet.date.isoformat(),
+                "text": tweet.rawContent,
+                "likes": tweet.likeCount or 0,
+                "retweets": tweet.retweetCount or 0,
+                "replies": tweet.replyCount or 0,
+                "views": tweet.viewCount or 0,
+                "is_retweet": tweet.retweetedTweet is not None,
+                "lang": tweet.lang or "en",
+            })
+            if on_progress:
+                on_progress(len(tweets))
+    except Exception as exc:
+        # Mid-scrape failure — return what we have if it's enough
+        if len(tweets) >= MIN_TWEETS_FOR_ANALYSIS:
+            print(f"[scraper] stopped at {len(tweets)} tweets due to: {exc} — continuing with partial data")
+        else:
+            raise
+
+    return tweets

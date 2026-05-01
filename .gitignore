@@ -22,6 +22,7 @@ backend/.env
 backend/accounts.db
 backend/__pycache__/
 backend/*.pyc
+backend/cache/
 
 # Frontend
 mind-shift-lens-ref/node_modules/
