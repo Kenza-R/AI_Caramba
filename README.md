@@ -48,9 +48,30 @@ Mind Shift Lens is a multi-agent analysis app that:
 This repo is organized into a **main app** folder and an **archive** folder.
 
 - `who-changed-app/` - **main app** (Express API + React frontend)
-- `other-submissions-and-homework/` - archived coursework, experiments, exports, screenshots, and prototype materials that are **not required** to run the main app
+- `other-submissions-and-homework/` - archived coursework, experiments, exports, screenshots, and prototype materials
 
 If your goal is to run the application, you only need `who-changed-app/`.
+
+> **Note for the technical report:** The PDF report (`other-submissions-and-homework/mind_shift_lens_technical_report.pdf`) describes the **Python FastAPI prototype** found at `other-submissions-and-homework/backend/` (FastAPI + uvicorn) with its React/Vite frontend at `other-submissions-and-homework/mind-shift-lens-ref/`. That prototype was the primary development vehicle and is what all report sections, screenshots, and case studies refer to. The `who-changed-app/` Express app is the later production iteration built on top of the same pipeline design. Both are in this repo.
+
+---
+
+## Quick Start (Python Prototype — described in the report)
+
+```bash
+cd other-submissions-and-homework/backend
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+# create .env with: TW_COOKIES_1=auth_token=...; ct0=...  and  ANTHROPIC_API_KEY=<lava.so key>
+uvicorn main:app --reload --port 8000
+```
+
+Frontend:
+
+```bash
+cd other-submissions-and-homework/mind-shift-lens-ref
+npm install && npm run dev   # → http://localhost:5173
+```
 
 ---
 
