@@ -23,132 +23,131 @@ const ShiftTimeline = ({ events }: Props) => {
   }
 
   return (
-    <div className="w-full overflow-x-auto pb-4">
-      {/* Desktop: horizontal */}
-      <div className="hidden md:block relative min-w-[700px]">
-        {/* Spine */}
-        <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-primary/40" style={{ boxShadow: "0 0 12px hsla(185, 100%, 50%, 0.3)" }} />
+    <div className="w-full">
+      <div className="relative space-y-4 pl-4 md:pl-6">
+        <div className="absolute left-1 md:left-2 top-2 bottom-2 w-px bg-primary/25" />
 
-        <div className="flex justify-around items-center py-20 relative">
-          {events.map((event, i) => {
-            const isUp = event.direction === "right";
-            const height = Math.min(event.magnitude * 12, 100);
-            const isOpen = expanded === event.id;
+        {events.map((event, i) => {
+          const isOpen = expanded === event.id;
+          const isFlagged = event.anomalyFlag ?? event.magnitude >= 3;
+          const delta =
+            typeof event.currentScore === "number" && typeof event.baselineScore === "number"
+              ? event.currentScore - event.baselineScore
+              : null;
 
-            return (
-              <div key={event.id} className="flex flex-col items-center relative cursor-pointer" onClick={() => setExpanded(isOpen ? null : event.id)}>
-                {/* Spike */}
-                <motion.div
-                  initial={{ scaleY: 0 }}
-                  whileInView={{ scaleY: 1 }}
-                  transition={{ delay: i * 0.2, duration: 0.5, ease: "easeOut" }}
-                  viewport={{ once: true }}
-                  className="w-0.5 origin-bottom"
-                  style={{
-                    height: `${height}px`,
-                    background: isUp ? "hsl(37, 90%, 55%)" : "hsl(185, 100%, 50%)",
-                    transform: isUp ? "translateY(-50%)" : "translateY(50%) scaleY(-1)",
-                    position: "absolute",
-                    top: isUp ? undefined : "50%",
-                    bottom: isUp ? "50%" : undefined,
-                  }}
-                />
+          return (
+            <motion.div
+              key={event.id}
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              viewport={{ once: true }}
+              className="relative"
+            >
+              <button
+                type="button"
+                onClick={() => setExpanded(isOpen ? null : event.id)}
+                className={`w-full text-left rounded border px-3 py-3 transition-colors ${
+                  isOpen ? "border-primary/40 bg-card/60" : "border-primary/20 bg-card/30 hover:border-primary/35"
+                }`}
+              >
+                <span className="absolute -left-[15px] md:-left-[19px] top-4 inline-flex h-3 w-3 rotate-45 border border-primary/50 bg-background" />
 
-                {/* Diamond node */}
-                <motion.div
-                  initial={{ scale: 0 }}
-                  whileInView={{ scale: 1 }}
-                  transition={{ delay: i * 0.2 + 0.3, type: "spring" }}
-                  viewport={{ once: true }}
-                  className={`w-4 h-4 rotate-45 border-2 z-10 ${isOpen ? "bg-primary border-primary" : "bg-card border-primary/60"} transition-colors`}
-                  style={{
-                    position: "absolute",
-                    top: isUp ? `calc(50% - ${height}px - 8px)` : `calc(50% + ${height}px - 8px)`,
-                  }}
-                />
+                <div className="flex flex-wrap items-center gap-2">
+                  {isFlagged ? <span className="text-sm">⚠️</span> : <span className="text-sm">⚡</span>}
+                  <span className="font-mono text-xs text-amber">{event.date}</span>
+                  <span className="font-mono text-[11px] text-muted-foreground">{event.topic}</span>
+                  <span
+                    className={`font-mono text-[11px] ${
+                      event.direction === "right" ? "text-amber" : "text-primary"
+                    }`}
+                  >
+                    {event.direction === "right" ? "+" : "-"}
+                    {event.magnitude}
+                  </span>
+                  {(event.baselinePeriod || event.currentPeriod) && (
+                    <span className="font-mono text-[10px] text-muted-foreground/70">
+                      {event.baselinePeriod || "baseline"} → {event.currentPeriod || "current"}
+                    </span>
+                  )}
+                  {delta !== null && (
+                    <span className={`font-mono text-[10px] ${delta >= 0 ? "text-amber" : "text-primary"}`}>
+                      Δ {delta >= 0 ? "+" : ""}
+                      {delta.toFixed(2)}
+                    </span>
+                  )}
+                </div>
+              </button>
 
-                {/* Date label */}
-                <span className="font-mono text-[10px] text-muted-foreground absolute" style={{ top: isUp ? `calc(50% - ${height}px - 28px)` : `calc(50% + ${height}px + 12px)` }}>
-                  {event.date}
-                </span>
+              <AnimatePresence>
+                {isOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden mt-2"
+                  >
+                    <div className="rounded border border-primary/20 bg-card/40 px-3 py-3 space-y-3">
+                      {event.flaggedTweetText && (
+                        <div className="rounded border border-amber/25 bg-amber/5 p-2">
+                          <p className="font-mono text-[10px] text-amber/90 mb-1">
+                            {isFlagged ? "⚠️ FLAGGED TWEET EVIDENCE" : "TWEET EVIDENCE"}
+                            {event.flaggedTweetDate ? ` • ${event.flaggedTweetDate}` : ""}
+                          </p>
+                          <p className="text-sm text-foreground/90 leading-relaxed">"{event.flaggedTweetText}"</p>
+                        </div>
+                      )}
 
-                {/* Expanded card */}
-                <AnimatePresence>
-                  {isOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      className="absolute z-30 w-80 frosted-glass border-glow rounded p-4 text-left"
-                      style={{ top: isUp ? `calc(50% - ${height}px - 200px)` : `calc(50% + ${height}px + 30px)` }}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-amber">⚡</span>
-                        <span className="font-mono text-xs text-amber font-semibold">SHIFT DETECTED — {event.date}</span>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="font-mono text-[10px] text-muted-foreground/60">BEFORE:</span>
+                          <p className="text-muted-foreground">{event.before}</p>
+                        </div>
+                        <div>
+                          <span className="font-mono text-[10px] text-amber/60">THE FISSURE:</span>
+                          <p className="text-foreground/90">{event.fissure}</p>
+                        </div>
+                        <div>
+                          <span className="font-mono text-[10px] text-secondary/60">AFTER:</span>
+                          <p className="text-muted-foreground">{event.after}</p>
+                        </div>
                       </div>
-                      <div className="flex gap-4 font-mono text-[11px] text-muted-foreground mb-3">
-                        <span>Topic: <span className="text-foreground">{event.topic}</span></span>
-                        <span>Magnitude: <span className={event.direction === "right" ? "text-amber" : "text-primary"}>
-                          {event.direction === "right" ? "+" : "-"}{event.magnitude}
-                        </span></span>
-                      </div>
-                      <div className="border-t border-primary/10 pt-2 space-y-2 text-sm">
-                        <div><span className="font-mono text-[10px] text-muted-foreground/60">BEFORE:</span><p className="text-muted-foreground">{event.before}</p></div>
-                        <div><span className="font-mono text-[10px] text-amber/60">THE FISSURE:</span><p className="text-foreground/90">{event.fissure}</p></div>
-                        <div><span className="font-mono text-[10px] text-secondary/60">AFTER:</span><p className="text-muted-foreground">{event.after}</p></div>
-                      </div>
+
                       {event.news.length > 0 && (
-                        <div className="border-t border-primary/10 pt-2 mt-2">
+                        <div className="border-t border-primary/10 pt-2">
                           <span className="font-mono text-[10px] text-muted-foreground/50">📰 NEWS AT THE TIME:</span>
                           {event.news.map((n, ni) => (
                             <p key={ni} className="font-mono text-[11px] text-muted-foreground mt-1">
                               {n.headline} <span className="text-muted-foreground/40">• {n.source}</span>
                             </p>
                           ))}
+                          {(event.newsDateAnchor || event.newsQueryUsed) && (
+                            <p className="font-mono text-[10px] text-muted-foreground/50 mt-2">
+                              Match context: {event.newsDateAnchor || "n/a"}
+                              {event.newsQueryUsed ? ` • query: ${event.newsQueryUsed}` : ""}
+                            </p>
+                          )}
                         </div>
                       )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Mobile: vertical */}
-      <div className="md:hidden space-y-6">
-        {events.map((event, i) => (
-          <motion.div
-            key={event.id}
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.1 }}
-            viewport={{ once: true }}
-            className="border-l-2 border-primary/30 pl-4 cursor-pointer"
-            onClick={() => setExpanded(expanded === event.id ? null : event.id)}
-          >
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rotate-45 bg-primary/60 -ml-[22px]" />
-              <span className="font-mono text-xs text-amber">{event.date}</span>
-              <span className="font-mono text-[10px] text-muted-foreground">{event.topic} ({event.direction === "right" ? "+" : "-"}{event.magnitude})</span>
-            </div>
-            <AnimatePresence>
-              {expanded === event.id && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden mt-2 border-glow rounded p-3 bg-card/40 text-sm space-y-2"
-                >
-                  <p className="text-muted-foreground"><span className="font-mono text-[10px] text-muted-foreground/50">BEFORE: </span>{event.before}</p>
-                  <p className="text-foreground/90"><span className="font-mono text-[10px] text-amber/60">FISSURE: </span>{event.fissure}</p>
-                  <p className="text-muted-foreground"><span className="font-mono text-[10px] text-secondary/60">AFTER: </span>{event.after}</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        ))}
+                      {event.news.length === 0 && event.newsNarrative && (
+                        <div className="border-t border-primary/10 pt-2">
+                          <span className="font-mono text-[10px] text-muted-foreground/50">📰 NEWS CORRELATION NOTE:</span>
+                          <p className="text-xs text-muted-foreground mt-1">{event.newsNarrative}</p>
+                          {(event.newsDateAnchor || event.newsQueryUsed) && (
+                            <p className="font-mono text-[10px] text-muted-foreground/50 mt-2">
+                              Match context: {event.newsDateAnchor || "n/a"}
+                              {event.newsQueryUsed ? ` • query: ${event.newsQueryUsed}` : ""}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          );
+        })}
       </div>
     </div>
   );

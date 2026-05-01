@@ -212,7 +212,7 @@ function buildDashboardPayload({
 }) {
   const { profile, dateRange, handle } = scraper;
   const { timeline, topics } = classifier;
-  const shifts = enrichShiftsWithQuotes(handle, shiftPack.shifts || []);
+  const shifts = shiftPack.shifts || [];
 
   const issues = buildIssuesGrid(timeline, topics, handle);
   const ring = shiftRingLevel(shifts);
@@ -284,7 +284,12 @@ export async function runPipeline(rawHandle, emit, opts = {}) {
 
   const classifier = await runClassifierAgent(scraper, emit);
   const shiftPack = runShiftDetectorAgent(classifier, emit);
-  const withNews = await runContextAgent(shiftPack, emit);
+  const shiftPackWithQuotes = {
+    ...shiftPack,
+    shifts: enrichShiftsWithQuotes(handle, shiftPack.shifts || []),
+    profile: scraper.profile,
+  };
+  const withNews = await runContextAgent(shiftPackWithQuotes, emit);
   const narrator = await runNarratorAgent(withNews, emit);
 
   const dashboard = buildDashboardPayload({

@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch index.js"
+    "dev": "node --watch index.js",
+    "analyze:csv": "node tools/analyzeCsvParallel.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

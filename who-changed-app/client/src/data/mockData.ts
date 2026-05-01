@@ -43,6 +43,16 @@ export interface ShiftEvent {
   fissure: string;
   after: string;
   news: { headline: string; source: string }[];
+  anomalyFlag?: boolean;
+  baselineScore?: number;
+  currentScore?: number;
+  baselinePeriod?: string;
+  currentPeriod?: string;
+  flaggedTweetText?: string;
+  flaggedTweetDate?: string;
+  newsNarrative?: string;
+  newsQueryUsed?: string;
+  newsDateAnchor?: string;
 }
 
 export interface EvidenceTweet {
@@ -123,6 +133,21 @@ function topicPretty(topic: string): string {
   return topic.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
+function extractQuotedEvidence(text: string): { tweet?: string; date?: string } {
+  const src = String(text || "");
+  const q = /Quote:\s*"([^"]+)"/i.exec(src);
+  const d = /\((\d{4}-\d{2}-\d{2})\)/.exec(src);
+  const fallback = src
+    .replace(/^.*?:\s*/, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 240);
+  return {
+    tweet: q?.[1]?.trim() || (fallback.length >= 32 ? fallback : undefined),
+    date: d?.[1] || undefined,
+  };
+}
+
 function mapDashboardToFigure(d: any): Figure {
   const handle = d?.handle || "unknown";
   const nowScore = Number(d?.spectrum?.current ?? d?.spectrum?.current_estimated ?? 0);
@@ -148,20 +173,36 @@ function mapDashboardToFigure(d: any): Figure {
     };
   });
 
-  const shiftEvents: ShiftEvent[] = shifts.map((s: any, i: number) => ({
-    id: `${handle}-${i}`,
-    date: String(s.date_range || s.period_after || "Unknown"),
-    topic: topicPretty(String(s.topic || "overall")),
-    magnitude: Number(s.magnitude || 0),
-    direction: s.direction === "left" ? "left" : "right",
-    before: String(s.before || s.before_summary || ""),
-    fissure: String(s.fissure || ""),
-    after: String(s.after || s.after_summary || ""),
-    news: (s.news?.headlines || []).map((h: any) => ({
-      headline: String(h.title || ""),
-      source: String(h.source || ""),
-    })),
-  }));
+  const shiftEvents: ShiftEvent[] = shifts.map((s: any, i: number) => {
+    const beforeText = String(s.before || s.before_summary || "");
+    const afterText = String(s.after || s.after_summary || "");
+    const afterEvidence = extractQuotedEvidence(afterText);
+    const beforeEvidence = extractQuotedEvidence(beforeText);
+    return {
+      id: `${handle}-${i}`,
+      date: String(s.date_range || s.period_after || "Unknown"),
+      topic: topicPretty(String(s.topic || "overall")),
+      magnitude: Number(s.magnitude || 0),
+      direction: s.direction === "left" ? "left" : "right",
+      before: beforeText,
+      fissure: String(s.fissure || ""),
+      after: afterText,
+      news: (s.news?.headlines || []).map((h: any) => ({
+        headline: String(h.title || ""),
+        source: String(h.source || ""),
+      })),
+      newsNarrative: s.news?.narrative ? String(s.news.narrative) : undefined,
+      newsQueryUsed: s.news?.query_used ? String(s.news.query_used) : undefined,
+      newsDateAnchor: s.news?.date_anchor ? String(s.news.date_anchor) : undefined,
+      anomalyFlag: Boolean(s.anomaly_flag),
+      baselineScore: Number.isFinite(Number(s.scores_before)) ? Number(s.scores_before) : undefined,
+      currentScore: Number.isFinite(Number(s.scores_after)) ? Number(s.scores_after) : undefined,
+      baselinePeriod: s.period_before ? String(s.period_before) : undefined,
+      currentPeriod: s.period_after ? String(s.period_after) : undefined,
+      flaggedTweetText: afterEvidence.tweet || beforeEvidence.tweet,
+      flaggedTweetDate: afterEvidence.date || beforeEvidence.date,
+    };
+  });
 
   const fig: Figure = {
     id: handle,
