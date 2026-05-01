@@ -790,9 +790,9 @@ def build_pdf(path: str):
         ),
         Table(
             [[
-                _rgba_image("/Users/kmr/AI_Caramba/twexportlyhasan.png",    width=1.8*inch),
-                _rgba_image("/Users/kmr/AI_Caramba/twexportkyelonmusk.png", width=1.8*inch),
-                _rgba_image("/Users/kmr/AI_Caramba/zlistotwexportly.png",   width=1.8*inch),
+                _rgba_image("/Users/kmr/AI_Caramba/other-submissions-and-homework/twexportlyhasan.png",    width=1.8*inch),
+                _rgba_image("/Users/kmr/AI_Caramba/other-submissions-and-homework/twexportkyelonmusk.png", width=1.8*inch),
+                _rgba_image("/Users/kmr/AI_Caramba/other-submissions-and-homework/zlistotwexportly.png",   width=1.8*inch),
             ]],
             colWidths=[2.15*inch, 2.15*inch, 2.15*inch],
             style=TableStyle([
@@ -1333,7 +1333,7 @@ def build_pdf(path: str):
             "across all seven topic dimensions, the shift timeline, and the AI synthesis narrative.",
             BODY
         ),
-        _rgba_image("/Users/kmr/AI_Caramba/dashboardanalysistweet.png", width=5.5*inch),
+        _rgba_image("/Users/kmr/AI_Caramba/other-submissions-and-homework/dashboardanalysistweet.png", width=5.5*inch),
         sp(3),
         fig_cap("Dashboard view after running analyses. Each card represents a completed figure profile. "
                 "Clicking a card navigates to the full dossier with topic scores, shift events, and narrative synthesis."),
@@ -1367,8 +1367,8 @@ def build_pdf(path: str):
             BODY
         ),
         Table([[
-            _rgba_image("/Users/kmr/AI_Caramba/zlistomaindashboard.png", width=2.65*inch),
-            _rgba_image("/Users/kmr/AI_Caramba/zlistosummary.png",       width=2.65*inch),
+            _rgba_image("/Users/kmr/AI_Caramba/other-submissions-and-homework/zlistomaindashboard.png", width=2.65*inch),
+            _rgba_image("/Users/kmr/AI_Caramba/other-submissions-and-homework/zlistosummary.png",       width=2.65*inch),
         ]], colWidths=[2.75*inch, 2.75*inch],
         style=TableStyle([("ALIGN",(0,0),(-1,-1),"CENTER"),("VALIGN",(0,0),(-1,-1),"TOP"),
                           ("LEFTPADDING",(0,0),(-1,-1),3),("RIGHTPADDING",(0,0),(-1,-1),3),
@@ -1376,8 +1376,8 @@ def build_pdf(path: str):
         fig_cap("@zlisto spectrum/header (left) and analyst summary (right)."),
         sp(3),
         Table([[
-            _rgba_image("/Users/kmr/AI_Caramba/zlistotimeline.png",  width=2.65*inch),
-            _rgba_image("/Users/kmr/AI_Caramba/zlistotimeline2.png", width=2.65*inch),
+            _rgba_image("/Users/kmr/AI_Caramba/other-submissions-and-homework/zlistotimeline.png",  width=2.65*inch),
+            _rgba_image("/Users/kmr/AI_Caramba/other-submissions-and-homework/zlistotimeline2.png", width=2.65*inch),
         ]], colWidths=[2.75*inch, 2.75*inch],
         style=TableStyle([("ALIGN",(0,0),(-1,-1),"CENTER"),("VALIGN",(0,0),(-1,-1),"TOP"),
                           ("LEFTPADDING",(0,0),(-1,-1),3),("RIGHTPADDING",(0,0),(-1,-1),3),
@@ -1413,8 +1413,8 @@ def build_pdf(path: str):
             BODY
         ),
         Table([[
-            _rgba_image("/Users/kmr/AI_Caramba/elonmuskmaintimeline.png", width=2.65*inch),
-            _rgba_image("/Users/kmr/AI_Caramba/elonmuskdetailedbydimentsion.png", width=2.65*inch),
+            _rgba_image("/Users/kmr/AI_Caramba/other-submissions-and-homework/elonmuskmaintimeline.png", width=2.65*inch),
+            _rgba_image("/Users/kmr/AI_Caramba/other-submissions-and-homework/elonmuskdetailedbydimentsion.png", width=2.65*inch),
         ]], colWidths=[2.75*inch, 2.75*inch],
             style=TableStyle([("ALIGN", (0,0), (-1,-1), "CENTER"), ("VALIGN", (0,0), (-1,-1), "TOP"), ("LEFTPADDING", (0,0), (-1,-1), 4), ("RIGHTPADDING", (0,0), (-1,-1), 4)])),
         fig_cap("@elonmusk: overall spectrum position (left) and seven-dimension breakdown (right)."),
@@ -1448,8 +1448,8 @@ def build_pdf(path: str):
             BODY
         ),
         Table([[
-            _rgba_image("/Users/kmr/AI_Caramba/hasanoveralltimeline.png", width=2.65*inch),
-            _rgba_image("/Users/kmr/AI_Caramba/hasandimensionanalyst.png", width=2.65*inch),
+            _rgba_image("/Users/kmr/AI_Caramba/other-submissions-and-homework/hasanoveralltimeline.png", width=2.65*inch),
+            _rgba_image("/Users/kmr/AI_Caramba/other-submissions-and-homework/hasandimensionanalyst.png", width=2.65*inch),
         ]], colWidths=[2.75*inch, 2.75*inch],
             style=TableStyle([("ALIGN", (0,0), (-1,-1), "CENTER"), ("VALIGN", (0,0), (-1,-1), "TOP"), ("LEFTPADDING", (0,0), (-1,-1), 4), ("RIGHTPADDING", (0,0), (-1,-1), 4)])),
         fig_cap("@hasanthehun: overall spectrum position (left) and seven-dimension breakdown (right)."),
@@ -1565,7 +1565,7 @@ def build_pdf(path: str):
             "confirming the query was formed and executed but returned nothing.",
             BODY
         ),
-        _rgba_image("/Users/kmr/AI_Caramba/nonewsfail.png", width=5.5*inch),
+        _rgba_image("/Users/kmr/AI_Caramba/other-submissions-and-homework/nonewsfail.png", width=5.5*inch),
         fig_cap(
             "The news correlation note displayed on every shift card. Despite the five-tier "
             "query fallback chain, all shifts returned 'unavailable headline data' — "
@@ -1637,7 +1637,7 @@ def build_pdf(path: str):
             "The screenshot below shows the persistent failure state in the UI after the fix was deployed:",
             BODY
         ),
-        _rgba_image("/Users/kmr/AI_Caramba/newsfail2.png", width=5.5*inch),
+        _rgba_image("/Users/kmr/AI_Caramba/other-submissions-and-homework/newsfail2.png", width=5.5*inch),
         fig_cap(
             "News correlation after the v2 patch — all shift cards still display "
             "'unavailable headline data'. The fallback logic executes correctly but "
@@ -2236,44 +2236,106 @@ def build_pdf(path: str):
         rule(),
         sp(3),
 
+        h2("Academic & Research References"),
+        info_table([
+            ["[1]  Conover et al. (2011)",
+             "\"Political Polarization on Twitter.\" Proc. 5th ICWSM. "
+             "Landmark network analysis showing ideological segregation in Twitter retweet graphs; "
+             "directly motivates ψSHIFT's use of tweet history as an ideological signal."],
+            ["[2]  Barberá, P. (2015)",
+             "\"Birds of the Same Feather Tweet Together: Bayesian Ideal Point Estimation Using "
+             "Twitter Data.\" Political Analysis 23(1). "
+             "Establishes that follower/following networks encode latent ideological positions — "
+             "foundational justification for treating tweet corpora as ideology proxies."],
+            ["[3]  Argyle et al. (2023)",
+             "\"Out of One, Many: Using Language Models to Simulate Human Samples.\" "
+             "Political Analysis 31(3). "
+             "Demonstrates that LLMs can reliably replicate survey-level political opinion "
+             "distributions, supporting the use of Claude for stance scoring."],
+            ["[4]  Santurkar et al. (2023)",
+             "\"Whose Opinions Do Language Models Reflect?\" ICML 2023. "
+             "Evaluates political bias in LLM outputs across demographic groups; "
+             "informs the confidence-calibration and known-bias caveats in Section 2.4.5."],
+            ["[5]  Törnberg (2023)",
+             "\"ChatGPT-4 Outperforms Experts and Crowd Workers in Annotating Political Twitter "
+             "Messages with Zero-Shot Learning.\" PLOS ONE 18(11). "
+             "Shows GPT-4-class models match or exceed human annotators on political text "
+             "classification — direct evidence base for the AI analysis engine."],
+            ["[6]  Poole & Rosenthal (1985)",
+             "\"A Spatial Model for Legislative Roll Call Analysis.\" "
+             "American Journal of Political Science 29(2). "
+             "Introduced DW-NOMINATE ideological scaling; conceptual basis for placing figures "
+             "on a one-dimensional left–right spectrum."],
+            ["[7]  Laver, Benoit & Garry (2003)",
+             "\"Extracting Policy Positions from Political Texts Using Words as Data.\" "
+             "American Political Science Review 97(2). "
+             "Wordscores method: scaling ideology from word frequencies in text corpora — "
+             "precursor to LLM-based stance extraction used in this project."],
+            ["[8]  Gilens & Page (2014)",
+             "\"Testing Theories of American Politics: Elites, Interest Groups, and Average "
+             "Citizens.\" Perspectives on Politics 12(3). "
+             "Empirical evidence that lobbying and elite preferences systematically shift policy "
+             "outcomes; motivates tracking public figures' position changes alongside donor data."],
+            ["[9]  Hall & Deardorff (2006)",
+             "\"Lobbying as Legislative Subsidy.\" "
+             "American Political Science Review 100(1). "
+             "Reframes lobbying as information provision rather than vote-buying; "
+             "relevant to interpreting correlated shifts between donation events and stance changes."],
+            ["[10] Brady et al. (2017)",
+             "\"Emotion Shapes the Diffusion of Moralized Content in Social Networks.\" "
+             "PNAS 114(28). "
+             "Shows morally charged language amplifies tweet virality — informs the weighting "
+             "of high-engagement tweets in the shift detection signal."],
+            ["[11] Pew Research Center (2023)",
+             "\"Political Polarization in the American Public.\" pewresearch.org. "
+             "Benchmark survey data on partisan divergence across immigration, economy, "
+             "climate, and healthcare — used to calibrate the seven-topic scoring axes."],
+            ["[12] OpenSecrets.org",
+             "Center for Responsive Politics database of campaign finance, PAC contributions, "
+             "and lobbying disclosures. opensecrets.org — cited as the reference dataset "
+             "for correlating detected stance shifts with donor/lobbying events."],
+        ], col_widths=[1.8*inch, 4.6*inch]),
+        tab_cap("Academic papers, research reports, and datasets cited in this report."),
+        sp(5),
+
         h2("Tools & Libraries"),
         info_table([
-            ["[1]  twscrape v0.15.0",
+            ["[13] twscrape v0.15.0",
              "Python library for scraping Twitter's internal GraphQL API via session-based auth. "
              "github.com/vladkens/twscrape"],
-            ["[2]  TwExportly",
+            ["[14] TwExportly",
              "Browser extension for exporting Twitter/X timeline data to CSV. "
              "twexportly.com — used for proof-of-concept dataset collection (free tier: 1,000 tweets)."],
-            ["[3]  x-timeline-scraper",
+            ["[15] x-timeline-scraper",
              "Async Python library for polling X timelines via cURL-based session auth. "
              "github.com/StephanAkkerman/x-timeline-scraper — evaluated but not adopted."],
-            ["[4]  stiles/trump-truth-social-archive",
+            ["[16] stiles/trump-truth-social-archive",
              "Append-only archive of Donald Trump's Truth Social posts in JSON/CSV format. "
              "github.com/stiles/trump-truth-social-archive — used as schema reference and data source."],
-            ["[5]  Anthropic Claude claude-opus-4-5",
+            ["[17] Anthropic Claude claude-opus-4-5",
              "Large language model used for all ideological analysis and synthesis. "
              "anthropic.com/claude"],
-            ["[6]  Lava.so",
+            ["[18] Lava.so",
              "Unified AI gateway providing a single Anthropic-compatible endpoint. "
              "api.lava.so — used in place of direct Anthropic API access."],
-            ["[7]  FastAPI",
+            ["[19] FastAPI",
              "Modern Python web framework for the backend REST API. "
              "fastapi.tiangolo.com"],
-            ["[8]  React 18 + TypeScript",
+            ["[20] React 18 + TypeScript",
              "Frontend framework and type system. react.dev"],
-            ["[9]  Vite",
+            ["[21] Vite",
              "Frontend build tool and dev server. vitejs.dev"],
-            ["[10] Tailwind CSS + shadcn/ui",
+            ["[22] Tailwind CSS + shadcn/ui",
              "Utility-first CSS framework and component library. "
              "tailwindcss.com / ui.shadcn.com"],
-            ["[11] Framer Motion",
+            ["[23] Framer Motion",
              "React animation library for page transitions and UI animations. "
              "framer.com/motion"],
-            ["[12] Pydantic v2",
+            ["[24] Pydantic v2",
              "Data validation library for the Figure schema and API models. "
              "docs.pydantic.dev"],
         ], col_widths=[1.8*inch, 4.6*inch]),
-        tab_cap("Tools, libraries, and external services referenced in this report."),
+        tab_cap("Tools, libraries, and external services used in the implementation."),
         sp(7),
 
         h2("Source Repository"),
