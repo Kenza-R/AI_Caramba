@@ -45,12 +45,12 @@ Mind Shift Lens is a multi-agent analysis app that:
 
 ## Repository Layout
 
-This repo includes multiple work areas. For end-to-end use, start with `who-changed-app`.
+This repo is organized into a **main app** folder and an **archive** folder.
 
 - `who-changed-app/` - **main app** (Express API + React frontend)
-- `backend/` - alternative FastAPI prototype
-- `mind-shift-lens-ref/` - frontend reference scaffold
-- `stance_watch/` - Python research tooling
+- `other-submissions-and-homework/` - archived coursework, experiments, exports, screenshots, and prototype materials that are **not required** to run the main app
+
+If your goal is to run the application, you only need `who-changed-app/`.
 
 ---
 
@@ -141,6 +141,10 @@ The importer:
 Script:
 
 - `who-changed-app/server/tools/analyzeCsvParallel.js`
+
+Sample CSV files and generated artifacts from previous submissions are stored under:
+
+- `other-submissions-and-homework/`
 
 ---
 
